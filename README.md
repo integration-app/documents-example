@@ -1,21 +1,16 @@
-# Integration Use Case Template
+# Import Documents
 
-This is a template for an application showcasing integration capabilities using [Integration.app](https://integration.app). The app is built with Next.js and demonstrates how to implement user authentication and integration token generation.
+This is an application showcasing how you can implement Importing Documents file storages or knowledge bases using [Integration.app](https://integration.app). The app is built with Next.js/React.
 
 ## Prerequisites
 
 - Node.js 18+ installed
 - Integration.app workspace credentials (Workspace Key and Secret)
+- (if needed)Unstructured.io API key for markdown extraction from files
 
 ## Setup
 
 1. Clone the repository:
-
-```bash
-git clone <repository-url>
-cd <repository-name>
-```
-
 2. Install dependencies:
 
 ```bash
@@ -52,26 +47,43 @@ yarn dev
 ```
 
 2. Open [http://localhost:3000](http://localhost:3000) in your browser.
-
 ## Project Structure
 
 - `/src/app` - Next.js app router pages and API routes
-  - `/users` - Example implementation of external data import
-  - `/api` - Backend API routes for users and integration token management
+  - `/knowledge` - Document management and viewing interface
+  - `/api` - Backend API routes for documents and integration management
+    - `/documents` - Document CRUD operations and content management
+    - `/integrations` - Integration token and connection management
 - `/src/components` - Reusable React components
+  - `/document-viewer` - Document content viewer component
+  - `/ui` - Shared UI components using Shadcn UI
 - `/src/lib` - Utility functions and helpers
+  - `/mongodb` - Database connection and utilities
+  - `/integration-app-client` - Integration.app API client
+  - `/server-auth` - Authentication utilities
 - `/src/models` - Data models and types
-- `/public` - Static assets
+  - `/document` - Document schema and types
+  - `/knowledge` - Knowledge base types
+- `/public` - Static assets and images
 
 ## Template Features
 
 ### Authentication
 
-The template implements a simple authentication mechanism using a randomly generated UUID as the customer ID. This simulates a real-world scenario where your application would have proper user authentication. The customer ID is used to:
+The template implements 2 simpleauthentication mechanisms:
+The template implements 2 simple authentication mechanisms:
+
+1. Integration.app token
+2. Default auth
+
+The Integration.app token is used to authenticate requests from the Integration.app platform. The default auth is used to authenticate requests from the frontend.
+Default auth uses a randomly generated UUID as the customer ID. This simulates a real-world scenario where your application would have proper user authentication. The customer ID is used to:
 
 - Identify the user/customer in the integration platform
 - Generate integration tokens for external app connections
 - Associate imported data with specific customers
+
+
 
 ### Users Example
 

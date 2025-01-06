@@ -32,7 +32,6 @@ async function connectDB(): Promise<typeof mongoose> {
       bufferCommands: false,
     };
 
-    // We know MONGODB_URI is defined here because we checked above
     cached.promise = mongoose.connect(MONGODB_URI as string, opts);
   }
 

@@ -4,6 +4,7 @@ import { Header } from "@/components/header"
 import { inter } from "@/app/fonts"
 import { IntegrationProvider } from "./integration-provider"
 import { AuthProvider } from "./auth-provider"
+import { Toaster } from 'sonner';
 
 export const metadata = {
   title: {
@@ -33,6 +34,7 @@ export default function RootLayout({
             </IntegrationProvider>
           </AuthProvider>
         </ThemeProvider>
+        <Toaster />
       </body>
     </html>
   )

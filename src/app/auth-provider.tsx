@@ -10,7 +10,7 @@ interface AuthContextType {
   setCustomerName: (name: string) => void
 }
 
-const AuthContext = createContext<AuthContextType>({
+export const AuthContext = createContext<AuthContextType>({
   customerId: null,
   customerName: null,
   setCustomerName: () => {},

@@ -1,73 +1,163 @@
 "use client"
 
 import { useIntegrationApp, useIntegrations } from "@integration-app/react"
-import type { Integration as IntegrationAppIntegration } from "@integration-app/sdk"
+import { Integration } from "@integration-app/sdk"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Settings } from "lucide-react"
+import { DocumentPicker } from "@/components/integration/document-picker"
+import { usePolling } from "@/hooks/use-polling"
+import { getAuthHeaders } from "@/app/auth-provider"
 
 export function IntegrationList() {
+  const router = useRouter()
   const integrationApp = useIntegrationApp()
   const { integrations, refresh } = useIntegrations()
+  const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null)
+  const [isPickerOpen, setIsPickerOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleConnect = async (integration: IntegrationAppIntegration) => {
+  const { startPolling, stopPolling } = usePolling({
+    url: selectedIntegration ? 
+      `/api/integrations/${selectedIntegration.connection?.id}/sync-status` : '',
+    interval: 2000,
+    onSuccess: (data) => {
+      if (data.status === 'completed') {
+        stopPolling()
+        setIsLoading(false)
+        setIsPickerOpen(true)
+      }
+    }
+  })
+
+  const handleConnect = async (integration: Integration) => {
     try {
-      await integrationApp.integration(integration.key).openNewConnection()
-      refresh()
+      const connection = await integrationApp.integration(integration.key).openNewConnection()
+      if (!connection?.id) {
+        throw new Error('No connection ID received')
+      }
+      console.log('connection', connection)
+      setSelectedIntegration(integration)
+      
+      // Start document sync
+      await fetch(`/api/integrations/${connection.id}/sync`, { 
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({
+          integrationId: integration.key,
+          integrationName: integration.name,
+          integrationLogo: integration.logoUri
+        })
+      })
+      startPolling()
+      
+      await refresh()
     } catch (error) {
       console.error("Failed to connect:", error)
+      setIsLoading(false)
     }
   }
 
-  const handleDisconnect = async (integration: IntegrationAppIntegration) => {
-    if (!integration.connection?.id) return
+  const handleDisconnect = async (integration: Integration) => {
+    if (!integration.connection?.id) return;
+    
     try {
-      await integrationApp.connection(integration.connection.id).archive()
-      refresh()
+      // First delete knowledge
+      await fetch(`/api/integrations/${integration.connection.id}/knowledge`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+
+      // Then archive connection
+      await integrationApp.connection(integration.connection.id).archive();
+      
+      setSelectedIntegration(null);
+      refresh();
     } catch (error) {
-      console.error("Failed to disconnect:", error)
+      console.error("Failed to disconnect:", error);
     }
-  }
+  };
 
   return (
-    <ul className="space-y-4 mt-8">
-      {integrations.map((integration) => (
-        <li
-          key={integration.key}
-          className="group flex items-center space-x-4 p-4 bg-white dark:bg-gray-800 rounded-lg shadow"
-        >
-          <div className="flex-shrink-0">
-            {integration.logoUri ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={integration.logoUri}
-                alt={`${integration.name} logo`}
-                className="w-10 h-10 rounded-lg"
-              />
-            ) : (
-              <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-lg font-medium text-gray-600 dark:text-gray-300">
-                {integration.name[0]}
-              </div>
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="text-lg font-medium text-gray-900 dark:text-white truncate">
-              {integration.name}
-            </h3>
-          </div>
-          <button
-            onClick={() =>
-              integration.connection
-                ? handleDisconnect(integration)
-                : handleConnect(integration)
-            }
-            className={`px-4 py-2 rounded-md font-medium transition-colors ${
-              integration.connection
-                ? "bg-red-100 text-red-700 dark:bg-red-700 dark:text-red-100 hover:bg-red-200 hover:text-red-800 dark:hover:bg-red-800 dark:hover:text-red-100"
-                : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-blue-100 hover:text-blue-700 dark:hover:bg-blue-700 dark:hover:text-blue-100"
-            }`}
+    <>
+      {selectedIntegration && (
+        <DocumentPicker
+          integration={selectedIntegration}
+          onComplete={() => {
+            setIsPickerOpen(false)
+            setSelectedIntegration(null)
+            router.push('/knowledge')
+          }}
+          onCancel={() => setIsPickerOpen(false)}
+          open={isPickerOpen}
+          onOpenChange={setIsPickerOpen}
+        />
+      )}
+
+      <div className="space-y-4">
+        {integrations.map((integration) => (
+          <div
+            key={integration.key}
+            className="flex items-center justify-between p-4 bg-white rounded-lg shadow"
           >
-            {integration.connection ? "Disconnect" : "Connect"}
-          </button>
-        </li>
-      ))}
-    </ul>
+            <div className="flex items-center gap-4">
+              {integration.logoUri ? (
+                <img
+                  src={integration.logoUri}
+                  alt={`${integration.name} logo`}
+                  className="w-10 h-10 rounded-lg"
+                />
+              ) : (
+                <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                  {integration.name[0]}
+                </div>
+              )}
+              <div>
+                <h3 className="font-medium">{integration.name}</h3>
+                {integration.connection?.disconnected && (
+                  <p className="text-sm text-red-500">Disconnected</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {integration.connection && !integration.connection.disconnected && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSelectedIntegration(integration)
+                    setIsPickerOpen(true)
+                  }}
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Configure
+                </Button>
+              )}
+              <Button
+                onClick={() =>
+                  integration.connection
+                    ? handleDisconnect(integration)
+                    : handleConnect(integration)
+                }
+                variant={integration.connection ? "destructive" : "default"}
+                size="sm"
+                disabled={isLoading}
+              >
+                {isLoading && selectedIntegration?.key === integration.key
+                  ? "Connecting..."
+                  : integration.connection
+                  ? "Disconnect"
+                  : "Connect"}
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </>
   )
 }
