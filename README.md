@@ -85,15 +85,28 @@ Default auth uses a randomly generated UUID as the customer ID. This simulates a
 
 
 
-### Users Example
+### Importing Documents Example
+The template includes a complete example of importing documents from external sources:
 
-The template includes a complete example of importing and managing users from an external application:
+1. **Integration Setup**
+   - Connect to external document providers (e.g., Google Drive, Dropbox)
+   - Securely store integration tokens and credentials
+   - Handle OAuth flows and token refresh
 
-- User data model and TypeScript types
-- API routes for user import and retrieval
-- React components for displaying user data
-- Integration with SWR for efficient data fetching
-- Example of using the Integration.app client for data import
+2. **Document Import Flow**
+   - Select documents from connected sources
+   - Import metadata and content
+   - Convert to standardized format
+   - Store in MongoDB with customer association
+
+3. **Content Processing**
+   - Extract text content from various file formats using Integration.app and Unstructured.io 
+
+4. **User Interface**
+  - Integrations list
+   - Creating new Integration connection
+   - Document picker interface (both folders and single documents)
+   - Import progress tracking
 
 ## Available Scripts
 
