@@ -2,13 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import { DocumentModel } from '@/models/document';
 import { KnowledgeModel } from '@/models/knowledge';
+import { getAuthFromRequest } from '@/lib/server-auth';
 
 export async function GET(request: NextRequest) {
+  
+  const auth = getAuthFromRequest(request);
+  const userId = auth.customerId;
+
   try {
     await connectDB();
 
     // Get all subscribed documents
-    const documents = await DocumentModel.find({ isSubscribed: true }).lean();
+    const documents = await DocumentModel.find({ isSubscribed: true, userId: userId }).lean();
 
     // Get integration info for each unique connectionId
     const connections = await KnowledgeModel.find({
