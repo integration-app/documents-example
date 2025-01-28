@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { Document } from './document';
 
 export interface IUser {
   userId: string;
@@ -6,6 +7,7 @@ export interface IUser {
   customerId: string;
   createdAt: Date;
   updatedAt: Date;
+  documents?: Document[]; // Virtual field for documents
 }
 
 const userSchema = new mongoose.Schema<IUser>(
@@ -30,8 +32,17 @@ const userSchema = new mongoose.Schema<IUser>(
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
 );
+
+// Virtual populate for documents
+userSchema.virtual('documents', {
+  ref: 'Document',
+  localField: '_id',
+  foreignField: 'userId'
+});
 
 // Create compound indices for common queries
 userSchema.index({ customerId: 1, createdAt: -1 });

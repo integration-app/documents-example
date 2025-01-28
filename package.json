@@ -1,5 +1,5 @@
 {
-  "name": "<use-case-name>",
+  "name": "documents-example",
   "version": "0.1.0",
   "private": true,
   "scripts": {

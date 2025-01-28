@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 interface PollingConfig {
   url: string;
   interval: number;
-  onSuccess?: (data: any) => void;
+  onSuccess?: (data: { status: string }) => void;
   onError?: (error: Error) => void;
 }
 

@@ -53,7 +53,6 @@ export function DocumentPicker({
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
-  const [folderPath, setFolderPath] = useState<Array<{ id: string; title: string }>>([]);
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
   const [checkedInitialSync, setCheckedInitialSync] = useState(false);
 
@@ -311,10 +310,10 @@ export function DocumentPicker({
     setBreadcrumbs(prev => [...prev, { id: folderId, title: folderTitle }]);
   };
 
-  const navigateToRoot = () => {
-    setCurrentFolderId(null);
-    setBreadcrumbs([]);
-  };
+  // const navigateToRoot = () => {
+  //   setCurrentFolderId(null);
+  //   setBreadcrumbs([]);
+  // };
 
   const navigateToBreadcrumb = (index: number) => {
     const newBreadcrumbs = breadcrumbs.slice(0, index + 1);

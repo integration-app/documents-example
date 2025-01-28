@@ -1,8 +1,6 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import { KnowledgeModel } from '@/models/knowledge';
-import { IntegrationAppClient } from '@integration-app/sdk';
-import { getAuthFromRequest } from '@/lib/server-auth';
 
 export async function GET() {
   try {

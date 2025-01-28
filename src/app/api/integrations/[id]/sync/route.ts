@@ -90,7 +90,7 @@ async function syncDocuments(connectionId: string, request: NextRequest) {
     } while (cursor);
 
     // Update with new documents
-    const result = await KnowledgeModel.findOneAndUpdate(
+     await KnowledgeModel.findOneAndUpdate(
       { connectionId },
       { 
         $set: { 

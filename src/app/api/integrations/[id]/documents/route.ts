@@ -47,7 +47,7 @@ export async function PATCH(
 
     await connectDB();
 
-    const result = await DocumentModel.updateMany(
+    await DocumentModel.updateMany(
       { 
         connectionId,
         id: { $in: documentIds }
