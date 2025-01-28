@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
     await connectDB();
 
     // Get all subscribed documents
-    const documents = await DocumentModel.find({ isSubscribed: true, userId: userId }).lean();
+    const documents = await DocumentModel.find({ isSubscribed: true}).lean();
 
     // Get integration info for each unique connectionId
     const connections = await KnowledgeModel.find({
