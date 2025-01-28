@@ -261,7 +261,7 @@ export default function KnowledgePage() {
           });
 
           const folders = currentDocs.filter(doc => doc.type === 'folder');
-          const files = currentDocs.filter(doc => doc.type === 'document');
+          const files = currentDocs.filter(doc => doc.type === 'file');
 
           if (currentDocs.length === 0) return null;
 
