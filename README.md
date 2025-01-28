@@ -2,16 +2,17 @@
 
 This is an application showcasing how you can implement Importing Documents file storages or knowledge bases using [Integration.app](https://integration.app). The app is built with Next.js/React.
 
+[Demo](https://documents-example.vercel.app/)
+
 ## Prerequisites
 
 - Node.js 18+ installed
 - Integration.app workspace credentials (Workspace Key and Secret)
-- (if needed)Unstructured.io API key for markdown extraction from files
+- MongoDB connection string
 
 ## Setup
 
-1. Clone the repository:
-2. Install dependencies:
+1. Clone repository & Install dependencies:
 
 ```bash
 npm install
@@ -19,14 +20,14 @@ npm install
 yarn install
 ```
 
-3. Set up environment variables:
+2. Set up environment variables file:
 
 ```bash
 # Copy the sample environment file
 cp .env-sample .env
 ```
 
-4. Edit `.env` and add your Integration.app credentials:
+3. Add your Integration.app & database credentials to the `.env` file:
 
 ```env
 INTEGRATION_APP_WORKSPACE_KEY=your_workspace_key_here
@@ -34,7 +35,8 @@ INTEGRATION_APP_WORKSPACE_SECRET=your_workspace_secret_here
 MONGODB_URI=your_mongodb_connection_string
 ```
 
-You can find these credentials in your Integration.app workspace settings.
+Retrieve your Integration.app credentials from the workspace settings in the [Integration.app Dashboard](https://console.integration.app).
+
 
 ## Running the Application
 
@@ -47,6 +49,7 @@ yarn dev
 ```
 
 2. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
 ## Project Structure
 
 - `/src/app` - Next.js app router pages and API routes
@@ -70,7 +73,6 @@ yarn dev
 
 ### Authentication
 
-The template implements 2 simpleauthentication mechanisms:
 The template implements 2 simple authentication mechanisms:
 
 1. Integration.app token
@@ -83,30 +85,33 @@ Default auth uses a randomly generated UUID as the customer ID. This simulates a
 - Generate integration tokens for external app connections
 - Associate imported data with specific customers
 
-
-
 ### Importing Documents Example
+
 The template includes a complete example of importing documents from external sources:
 
 1. **Integration Setup**
+
    - Connect to external document providers (e.g., Google Drive, Dropbox)
    - Securely store integration tokens and credentials
    - Handle OAuth flows and token refresh
 
 2. **Document Import Flow**
+
    - Select documents from connected sources
    - Import metadata and content
    - Convert to standardized format
    - Store in MongoDB with customer association
 
 3. **Content Processing**
-   - Extract text content from various file formats using Integration.app and Unstructured.io 
+
+   - Extract text content from various file formats using Integration.app and Unstructured.io
 
 4. **User Interface**
-  - Integrations list
-   - Creating new Integration connection
-   - Document picker interface (both folders and single documents)
-   - Import progress tracking
+
+- Integrations list
+- Creating new Integration connection
+- Document picker interface (both folders and single documents)
+- Import progress tracking
 
 ## Available Scripts
 
@@ -114,6 +119,7 @@ The template includes a complete example of importing documents from external so
 - `npm run build` - Build the application for production
 - `npm run start` - Start the production server
 - `npm run lint` - Run ESLint to check code quality
+- `npm run typecheck` - Run TypeScript type checker
 
 ## License
 
