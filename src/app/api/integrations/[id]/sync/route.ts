@@ -70,7 +70,8 @@ async function syncDocuments(connectionId: string, request: NextRequest) {
         ...doc.fields,
         connectionId,
         isSubscribed: false,
-        content: null
+        content: null,
+        userId: auth.customerId
       }));
 
       // Save documents
@@ -78,7 +79,7 @@ async function syncDocuments(connectionId: string, request: NextRequest) {
         transformedDocs.map(doc => ({
           updateOne: {
             filter: { id: doc.id, connectionId },
-            update: { $set: doc, userId: auth.customerId },
+            update: { $set: doc},
             upsert: true
           }
         }))
