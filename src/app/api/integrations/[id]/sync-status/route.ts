@@ -4,7 +4,7 @@ import { KnowledgeModel } from '@/models/knowledge';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } 
 ) {
   try {
     const connectionId = (await params).id;

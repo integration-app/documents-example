@@ -4,12 +4,12 @@ import { KnowledgeModel } from '@/models/knowledge';
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } 
 ) {
   try {
     await connectDB();
     
-    await KnowledgeModel.findByIdAndDelete(params.id);
+    await KnowledgeModel.findByIdAndDelete((await params).id); 
 
     return NextResponse.json({ success: true });
   } catch (error) {
