@@ -12,6 +12,11 @@ interface SyncRequest {
   integrationLogo?: string;
 }
 
+
+interface ListDocumentsActionRecord {
+  fields: Exclude<Document, "connectionId" | "content" | "userId">;
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> } 
@@ -65,13 +70,16 @@ async function syncDocuments(connectionId: string, request: NextRequest) {
         .action('list-documents')
         .run({ cursor });
       
+
+      const records = result.output.records as ListDocumentsActionRecord[];
+
       // Transform documents to match our schema
-      const transformedDocs = result.output.records.map(doc => ({
+      const transformedDocs = records.map((doc) => ({
         ...doc.fields,
         connectionId,
         isSubscribed: false,
         content: null,
-        userId: auth.customerId
+        userId: auth.customerId,
       }));
 
       // Save documents
@@ -106,14 +114,14 @@ async function syncDocuments(connectionId: string, request: NextRequest) {
     console.error('Sync error:', error);
     await KnowledgeModel.findOneAndUpdate(
       { connectionId },
-      { 
-        $set: { 
-          syncStatus: 'failed',
-          syncError: error.message,
-          syncCompletedAt: new Date()
-        }
+      {
+        $set: {
+          syncStatus: "failed",
+          syncError: (error as Error).message,
+          syncCompletedAt: new Date(),
+        },
       }
     );
     throw error;
   }
-} 
+}

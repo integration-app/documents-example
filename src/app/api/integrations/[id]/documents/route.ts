@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/mongodb';
-import { DocumentModel } from '@/models/document';
+import { NextRequest, NextResponse } from "next/server";
+import connectDB from "@/lib/mongodb";
+import { DocumentModel } from "@/models/document";
 
 export async function GET(
   request: NextRequest,
@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const { searchParams } = new URL(request.url);
-    const searchQuery = searchParams.get('q') || '';
+    const searchQuery = searchParams.get("q") || "";
     const connectionId = (await params).id;
 
     if (!connectionId) {
@@ -16,12 +16,15 @@ export async function GET(
     }
 
     await connectDB();
-    
-    let query = { connectionId };
+
+    let query: {
+      connectionId: string;
+      title?: { $regex: string; $options: string };
+    } = { connectionId };
     if (searchQuery) {
       query = {
         ...query,
-        title: { $regex: searchQuery, $options: 'i' }
+        title: { $regex: searchQuery, $options: "i" },
       };
     }
 
@@ -29,9 +32,9 @@ export async function GET(
 
     return NextResponse.json({ documents });
   } catch (error) {
-    console.error('Failed to fetch documents:', error);
+    console.error("Failed to fetch documents:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch documents' },
+      { error: "Failed to fetch documents" },
       { status: 500 }
     );
   }
@@ -48,9 +51,9 @@ export async function PATCH(
     await connectDB();
 
     await DocumentModel.updateMany(
-      { 
+      {
         connectionId,
-        id: { $in: documentIds }
+        id: { $in: documentIds },
       },
       { $set: { isSubscribed } }
     );
@@ -59,10 +62,10 @@ export async function PATCH(
 
     return NextResponse.json({ documents });
   } catch (error) {
-    console.error('Failed to update subscription:', error);
+    console.error("Failed to update subscription:", error);
     return NextResponse.json(
-      { error: 'Failed to update subscription' },
+      { error: "Failed to update subscription" },
       { status: 500 }
     );
   }
-} 
+}
