@@ -4,7 +4,7 @@ import { KnowledgeModel } from '@/models/knowledge';
 import { IntegrationAppClient } from '@integration-app/sdk';
 import { getAuthFromRequest } from '@/lib/server-auth';
 import { generateIntegrationToken } from '@/lib/integration-token';
-import { DocumentModel } from '@/models/document';
+import { DocumentModel, Document } from '@/models/document';
 
 interface SyncRequest {
   integrationId: string;
