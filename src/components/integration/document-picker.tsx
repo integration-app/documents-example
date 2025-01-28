@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { cn } from "@/lib/utils";
 import { Integration } from '@integration-app/sdk';
 import { Input } from "@/components/ui/input";
-import { Document } from '@/models/knowledge';
+import { Document } from '@/models/document';
 import { 
   FileIcon, 
   RefreshCcwIcon, 
@@ -53,7 +53,6 @@ export function DocumentPicker({
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
-  const [folderPath, setFolderPath] = useState<Array<{ id: string; title: string }>>([]);
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
   const [checkedInitialSync, setCheckedInitialSync] = useState(false);
 
@@ -235,7 +234,10 @@ export function DocumentPicker({
         throw new Error('Failed to update subscription');
       }
 
-      const { documents: updatedDocuments } = await response.json();
+      const { documents: updatedDocuments } = (await response.json()) as {
+        documents: Document[];
+      };
+
       setDocuments(updatedDocuments);
       
       // Update filtered documents while maintaining search
@@ -311,10 +313,10 @@ export function DocumentPicker({
     setBreadcrumbs(prev => [...prev, { id: folderId, title: folderTitle }]);
   };
 
-  const navigateToRoot = () => {
-    setCurrentFolderId(null);
-    setBreadcrumbs([]);
-  };
+  // const navigateToRoot = () => {
+  //   setCurrentFolderId(null);
+  //   setBreadcrumbs([]);
+  // };
 
   const navigateToBreadcrumb = (index: number) => {
     const newBreadcrumbs = breadcrumbs.slice(0, index + 1);

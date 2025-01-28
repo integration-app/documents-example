@@ -5,9 +5,9 @@ const INTEGRATION_APP_TOKEN_HEADER = 'x-integration-app-token';
 const WORKSPACE_SECRET = process.env.INTEGRATION_APP_WORKSPACE_SECRET!;
 
 interface IntegrationAppTokenPayload {
-  iss: string;      // Workspace key
-  sub: string;      // User ID
-  fields: Record<string, any>; // User fields
+  iss: string | undefined; // Workspace key
+  sub: string | undefined; // User ID
+  fields: Record<string, unknown>; // User fields
 }
 
 export async function verifyIntegrationAppToken(request: NextRequest): Promise<IntegrationAppTokenPayload | null> {
@@ -24,7 +24,11 @@ export async function verifyIntegrationAppToken(request: NextRequest): Promise<I
       encoder.encode(WORKSPACE_SECRET)
     );
 
-    return payload as any;
+    return {
+      iss: payload.iss,
+      sub: payload.sub,
+      fields: payload.fields as Record<string, unknown>,
+    };
   } catch (error) {
     console.error('Failed to verify integration.app token:', error);
     return null;

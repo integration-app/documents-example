@@ -22,7 +22,7 @@ async function authenticateRequest(request: NextRequest): Promise<boolean> {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const isAuthenticated = await authenticateRequest(request);
@@ -54,7 +54,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const isAuthenticated = await authenticateRequest(request);
@@ -66,7 +66,7 @@ export async function PUT(
     }
 
     await connectDB();
-    const documentId = params.id;
+    const documentId = (await params).id;
     const { content } = await request.json();
 
     const updatedDocument = await DocumentModel.findOneAndUpdate(
@@ -99,7 +99,7 @@ export async function PUT(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const isAuthenticated = await authenticateRequest(request);
@@ -111,7 +111,7 @@ export async function POST(
     }
 
     await connectDB();
-    const documentId = params.id;
+    const documentId = (await params).id;
     const { content } = await request.json();
 
     const updatedDocument = await DocumentModel.findOneAndUpdate(

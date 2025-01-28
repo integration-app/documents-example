@@ -1,37 +1,43 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { getAuthHeaders } from '@/app/auth-provider';
-import { Loader2Icon } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { getAuthHeaders } from "@/app/auth-provider";
+import { Loader2Icon } from "lucide-react";
+import { use } from 'react'
 
-export default function ViewDocument({ params }: { params: { id: string } }) {
-  const [content, setContent] = useState<string>('');
+type Params = Promise<{
+  id: string;
+}>;
+
+export default function ViewDocument({ params }: { params: Params }) {
+  const [content, setContent] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { id: documentId } = use(params)
 
   useEffect(() => {
     const fetchContent = async () => {
       try {
-        const response = await fetch(`/api/documents/${params.id}/content`, {
-          headers: getAuthHeaders()
+        const response = await fetch(`/api/documents/${documentId}/content`, {
+          headers: getAuthHeaders(),
         });
 
         if (!response.ok) {
-          throw new Error('Failed to fetch document content');
+          throw new Error("Failed to fetch document content");
         }
 
         const data = await response.json();
         setContent(data.content);
       } catch (error) {
-        console.error('Error fetching content:', error);
-        setError('Failed to load document content');
+        console.error("Error fetching content:", error);
+        setError("Failed to load document content");
       } finally {
         setLoading(false);
       }
     };
 
     fetchContent();
-  }, [params.id]);
+  }, [documentId]);
 
   if (loading) {
     return (
@@ -44,9 +50,7 @@ export default function ViewDocument({ params }: { params: { id: string } }) {
   if (error) {
     return (
       <div className="container mx-auto py-8">
-        <div className="p-4 text-red-500 bg-red-50 rounded-md">
-          {error}
-        </div>
+        <div className="p-4 text-red-500 bg-red-50 rounded-md">{error}</div>
       </div>
     );
   }
@@ -58,4 +62,4 @@ export default function ViewDocument({ params }: { params: { id: string } }) {
       </div>
     </div>
   );
-} 
+}

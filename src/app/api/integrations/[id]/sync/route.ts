@@ -4,7 +4,7 @@ import { KnowledgeModel } from '@/models/knowledge';
 import { IntegrationAppClient } from '@integration-app/sdk';
 import { getAuthFromRequest } from '@/lib/server-auth';
 import { generateIntegrationToken } from '@/lib/integration-token';
-import { DocumentModel } from '@/models/document';
+import { DocumentModel, Document } from '@/models/document';
 
 interface SyncRequest {
   integrationId: string;
@@ -12,9 +12,14 @@ interface SyncRequest {
   integrationLogo?: string;
 }
 
+
+interface ListDocumentsActionRecord {
+  fields: Exclude<Document, "connectionId" | "content" | "userId">;
+}
+
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } 
 ) {
   try {
     const connectionId = (await params).id;
@@ -65,13 +70,16 @@ async function syncDocuments(connectionId: string, request: NextRequest) {
         .action('list-documents')
         .run({ cursor });
       
-      console.log(result, cursor);
+
+      const records = result.output.records as ListDocumentsActionRecord[];
+
       // Transform documents to match our schema
-      const transformedDocs = result.output.records.map(doc => ({
+      const transformedDocs = records.map((doc) => ({
         ...doc.fields,
         connectionId,
         isSubscribed: false,
-        content: null
+        content: null,
+        userId: auth.customerId,
       }));
 
       // Save documents
@@ -79,7 +87,7 @@ async function syncDocuments(connectionId: string, request: NextRequest) {
         transformedDocs.map(doc => ({
           updateOne: {
             filter: { id: doc.id, connectionId },
-            update: { $set: doc },
+            update: { $set: doc},
             upsert: true
           }
         }))
@@ -90,7 +98,7 @@ async function syncDocuments(connectionId: string, request: NextRequest) {
     } while (cursor);
 
     // Update with new documents
-    const result = await KnowledgeModel.findOneAndUpdate(
+     await KnowledgeModel.findOneAndUpdate(
       { connectionId },
       { 
         $set: { 
@@ -106,14 +114,14 @@ async function syncDocuments(connectionId: string, request: NextRequest) {
     console.error('Sync error:', error);
     await KnowledgeModel.findOneAndUpdate(
       { connectionId },
-      { 
-        $set: { 
-          syncStatus: 'failed',
-          syncError: error.message,
-          syncCompletedAt: new Date()
-        }
+      {
+        $set: {
+          syncStatus: "failed",
+          syncError: (error as Error).message,
+          syncCompletedAt: new Date(),
+        },
       }
     );
     throw error;
   }
-} 
+}

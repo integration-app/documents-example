@@ -5,7 +5,7 @@ import { generateIntegrationToken } from '@/lib/integration-token';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const connectionId = (await params).id;

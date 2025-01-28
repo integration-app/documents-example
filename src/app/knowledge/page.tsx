@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { format } from 'date-fns';
 import { getAuthHeaders } from '@/app/auth-provider';
-import { Document } from '@/models/knowledge';
+import { Document } from '@/models/document';
 import { FileIcon, FolderIcon, ExternalLinkIcon, Loader2Icon, ChevronRightIcon, DownloadIcon, RefreshCwIcon } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -45,24 +45,25 @@ export default function KnowledgePage() {
   const [viewingDocument, setViewingDocument] = useState<Document | null>(null);
 
   // Add polling interval ref
-  const pollingInterval = useRef<NodeJS.Timeout>();
+  const pollingInterval = useRef<NodeJS.Timeout | null>(null);
 
   // Start polling when component mounts
   useEffect(() => {
+    const startPolling = () => {
+      // Initial fetch
+      fetchSubscribedDocuments();
+      
+      // Set up polling every 2 seconds
+      pollingInterval.current = setInterval(() => {
+        fetchSubscribedDocuments();
+      }, 2000);
+    };
+
     startPolling();
     return () => stopPolling();
   }, []);
 
-  const startPolling = () => {
-    // Initial fetch
-    fetchSubscribedDocuments();
-    
-    // Set up polling every 2 seconds
-    pollingInterval.current = setInterval(() => {
-      fetchSubscribedDocuments();
-    }, 2000);
-  };
-
+ 
   const stopPolling = () => {
     if (pollingInterval.current) {
       clearInterval(pollingInterval.current);
@@ -74,7 +75,6 @@ export default function KnowledgePage() {
       return (
         <>
           <Button
-            variant="ghost"
             size="sm"
             onClick={() => setViewingDocument(doc)}
             className="h-8 w-8 p-0"
@@ -83,7 +83,6 @@ export default function KnowledgePage() {
             <Icons.file className="h-4 w-4" />
           </Button>
           <Button
-            variant="ghost"
             size="sm"
             onClick={() => downloadDocument(connectionId, doc)}
             className="h-8 w-8 p-0"
@@ -97,7 +96,6 @@ export default function KnowledgePage() {
 
     return (
       <Button
-        variant="ghost"
         size="sm"
         onClick={() => downloadDocument(connectionId, doc)}
         className="h-8 w-8 p-0"

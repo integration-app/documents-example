@@ -5,10 +5,10 @@ import { DocumentModel } from '@/models/document';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> } 
 ) {
   try {
-    const connectionId = params.id;
+    const connectionId = (await params).id; 
     await connectDB();
 
     // Delete knowledge

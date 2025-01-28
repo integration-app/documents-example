@@ -1,12 +1,13 @@
 {
-  "name": "<use-case-name>",
+  "name": "documents-example",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@integration-app/react": "^2.1.3",
