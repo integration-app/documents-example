@@ -65,7 +65,6 @@ async function syncDocuments(connectionId: string, request: NextRequest) {
         .action('list-documents')
         .run({ cursor });
       
-      console.log(result, cursor);
       // Transform documents to match our schema
       const transformedDocs = result.output.records.map(doc => ({
         ...doc.fields,
@@ -79,7 +78,7 @@ async function syncDocuments(connectionId: string, request: NextRequest) {
         transformedDocs.map(doc => ({
           updateOne: {
             filter: { id: doc.id, connectionId },
-            update: { $set: doc },
+            update: { $set: doc, userId: auth.customerId },
             upsert: true
           }
         }))

@@ -13,6 +13,7 @@ export interface Document {
   isSubscribed: boolean;
   connectionId: string;
   content?: string;
+  userId: string;
 }
 
 interface DocumentWithConnection extends Document {
@@ -34,6 +35,7 @@ const documentSchema = new Schema<DocumentWithConnection>({
   createdAt: String,
   updatedAt: String,
   folderId: String,
+  userId: String,
   isSubscribed: {
     type: Boolean,
     default: false
