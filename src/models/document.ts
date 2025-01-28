@@ -1,6 +1,6 @@
 import { Schema, model, models } from 'mongoose';
 
-export type DocumentType = 'document' | 'folder';
+export type DocumentType = 'file' | 'folder';
 
 export interface Document {
   id: string;
@@ -27,8 +27,8 @@ const documentSchema = new Schema<DocumentWithConnection>({
   title: String,
   type: {
     type: String,
-    enum: ['document', 'folder'],
-    default: 'document',
+    enum: ['file', 'folder'],
+    default: 'file',
     required: true
   },
   previewUri: String,
