@@ -272,7 +272,7 @@ export function DocumentPicker({
 
   // Get all documents that should be toggled when selecting a document/folder
   const getDocumentsToToggle = (document: Document): Document[] => {
-    if (document.type === 'document') {
+    if (document.type === 'file') {
       return [document];
     }
     
@@ -303,9 +303,9 @@ export function DocumentPicker({
   const currentFiles = filteredDocuments.filter(doc => {
     if (currentFolderId === null) {
       // At root level, show documents with no folderId
-      return doc.type === 'document' && !doc.folderId;
+      return doc.type === 'file' && !doc.folderId;
     }
-    return doc.type === 'document' && doc.folderId === currentFolderId;
+    return doc.type === 'file' && doc.folderId === currentFolderId;
   });
 
   const navigateToFolder = (folderId: string, folderTitle: string) => {
