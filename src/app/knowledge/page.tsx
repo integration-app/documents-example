@@ -75,7 +75,6 @@ export default function KnowledgePage() {
       return (
         <>
           <Button
-            variant="ghost"
             size="sm"
             onClick={() => setViewingDocument(doc)}
             className="h-8 w-8 p-0"
@@ -84,7 +83,6 @@ export default function KnowledgePage() {
             <Icons.file className="h-4 w-4" />
           </Button>
           <Button
-            variant="ghost"
             size="sm"
             onClick={() => downloadDocument(connectionId, doc)}
             className="h-8 w-8 p-0"
@@ -98,7 +96,6 @@ export default function KnowledgePage() {
 
     return (
       <Button
-        variant="ghost"
         size="sm"
         onClick={() => downloadDocument(connectionId, doc)}
         className="h-8 w-8 p-0"

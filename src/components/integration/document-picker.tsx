@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { cn } from "@/lib/utils";
 import { Integration } from '@integration-app/sdk';
 import { Input } from "@/components/ui/input";
-import { Document } from '@/models/knowledge';
+import { Document } from '@/models/document';
 import { 
   FileIcon, 
   RefreshCcwIcon, 
@@ -234,7 +234,10 @@ export function DocumentPicker({
         throw new Error('Failed to update subscription');
       }
 
-      const { documents: updatedDocuments } = await response.json();
+      const { documents: updatedDocuments } = (await response.json()) as {
+        documents: Document[];
+      };
+
       setDocuments(updatedDocuments);
       
       // Update filtered documents while maintaining search
