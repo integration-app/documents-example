@@ -255,13 +255,15 @@ export default function KnowledgePage() {
         {integrationDocuments.map((integration) => {
           const currentDocs = integration.documents.filter(doc => {
             if (currentFolderId === null) {
-              return !doc.folderId;
+              return !doc.parentId;
             }
-            return doc.folderId === currentFolderId;
+            return doc.parentId === currentFolderId;
           });
 
-          const folders = currentDocs.filter(doc => doc.type === 'folder');
-          const files = currentDocs.filter(doc => doc.type === 'file');
+          const folders = currentDocs.filter(doc => doc.canHaveChildren);
+          const files = currentDocs.filter(doc => !doc.canHaveChildren);
+
+          console.log({files, folders})
 
           if (currentDocs.length === 0) return null;
 
@@ -333,9 +335,9 @@ export default function KnowledgePage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <DocumentActions doc={doc} connectionId={integration.integrationId} />
-                        {doc.previewUri && (
+                        {doc.resourceURI && (
                           <a
-                            href={doc.previewUri}
+                            href={doc.resourceURI}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-blue-500 hover:text-blue-600 h-8 w-8 flex items-center justify-center"

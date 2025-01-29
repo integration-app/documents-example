@@ -257,12 +257,12 @@ export function DocumentPicker({
     const result: Document[] = [];
     
     // Get immediate children
-    const children = documents.filter(doc => doc.folderId === folderId);
+    const children = documents.filter(doc => doc.parentId === folderId);
     
     for (const child of children) {
       result.push(child);
       // If child is a folder, get its contents recursively
-      if (child.type === 'folder') {
+      if (child.canHaveChildren) {
         result.push(...getDocumentsInFolder(child.id));
       }
     }
@@ -272,7 +272,7 @@ export function DocumentPicker({
 
   // Get all documents that should be toggled when selecting a document/folder
   const getDocumentsToToggle = (document: Document): Document[] => {
-    if (document.type === 'file') {
+    if (document.canHaveChildren === false) {
       return [document];
     }
     
@@ -294,18 +294,19 @@ export function DocumentPicker({
   const currentFolders = filteredDocuments.filter(doc => {
     if (currentFolderId === null) {
       // At root level, show documents with no folderId
-      return doc.type === 'folder' && !doc.folderId;
+      return doc.canHaveChildren && !doc.parentId
     }
-    return doc.type === 'folder' && doc.folderId === currentFolderId;
+
+    return doc.canHaveChildren  && doc.parentId === currentFolderId;
   });
 
   // Get documents at current level
   const currentFiles = filteredDocuments.filter(doc => {
     if (currentFolderId === null) {
       // At root level, show documents with no folderId
-      return doc.type === 'file' && !doc.folderId;
+      return doc.canHaveChildren === false && !doc.parentId
     }
-    return doc.type === 'file' && doc.folderId === currentFolderId;
+    return doc.canHaveChildren === false && doc.parentId === currentFolderId;
   });
 
   const navigateToFolder = (folderId: string, folderTitle: string) => {
