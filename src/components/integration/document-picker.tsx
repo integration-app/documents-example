@@ -205,7 +205,7 @@ export function DocumentPicker({
     setSearchQuery(e.target.value);
   };
 
-  const toggleDocument = async (document: Document) => {
+  const handleComplete = async (document: Document) => {
     try {
       // Get all documents that should be toggled
       const documentsToToggle = getDocumentsToToggle(document);
@@ -268,29 +268,17 @@ export function DocumentPicker({
     return [document, ...getDocumentsInFolder(document.id)];
   };
 
-  // Update checkbox to show folder selection state
-  const getFolderSelectionState = (
-    folder: Document
-  ): boolean | "indeterminate" => {
-    const contents = getDocumentsInFolder(folder.id);
-    const selectedCount = contents.filter((doc) => doc.isSubscribed).length;
-
-    if (selectedCount === 0) return false;
-    if (selectedCount === contents.length) return true;
-    return "indeterminate";
-  };
-
   // Update the folder and file filtering logic
   const getFilteredDocuments = () => {
     let filtered = documents;
-    
+
     if (searchQuery) {
       const searchLower = searchQuery.toLowerCase();
       filtered = documents.filter((doc) =>
         doc.title.toLowerCase().includes(searchLower)
       );
     }
-    
+
     return filtered;
   };
 
@@ -350,21 +338,58 @@ export function DocumentPicker({
     );
   };
 
-  const subscribeToDocument = (document: Document) => {
-    // Get IDs of all documents that need to be updated
+  const updateStateWithSubscription = async (document: Document) => {
+    const currentDocuments = [...documents];
+
+    // Update state optimistically by updating the state of the document and all its children
     const documentsToUpdate = document.canHaveChildren
       ? [document.id, ...getDocumentsInFolder(document.id).map((doc) => doc.id)]
       : [document.id];
-    
-    // Update documents state
+
     const newSubscriptionState = !document.isSubscribed;
-    const newDocuments = documents.map((doc) =>
-      documentsToUpdate.includes(doc.id)
-        ? { ...doc, isSubscribed: newSubscriptionState }
-        : doc
+
+    const newDocuments = documents.map((doc) => {
+      if (documentsToUpdate.includes(doc.id)) {
+        return { ...doc, isSubscribed: newSubscriptionState };
+      }
+      return doc;
+    });
+
+    /**
+     * Update the subscription state of affected documents in the database
+     */
+    setDocuments(newDocuments);
+
+    /**
+     * Persist state to backend
+     */
+    const payload = {
+      documentIds: documentsToUpdate,
+      isSubscribed: newSubscriptionState,
+    };
+
+    const response = await fetch(
+      `/api/integrations/${integration.connection?.id}/documents/subscription`,
+      {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+      }
     );
 
-    setDocuments(newDocuments);
+    if (!response.ok) {
+      /**
+       * Reverse optimistic update since the database update failed
+       */
+      setDocuments(currentDocuments);
+    }
+
+    const data = await response.json();
+
+    console.log({ data });
   };
 
   const renderContent = () => {
@@ -411,10 +436,9 @@ export function DocumentPicker({
                 onClick={() => navigateToFolder(folder.id, folder.title)}
               >
                 <Checkbox
-                  checked={getFolderSelectionState(folder)}
-                  // onCheckedChange={() => toggleDocument(folder)}
+                  checked={folder.isSubscribed}
                   onCheckedChange={() => {
-                    subscribeToDocument(folder);
+                    updateStateWithSubscription(folder);
                   }}
                   onClick={(e) => e.stopPropagation()}
                 />
@@ -436,11 +460,11 @@ export function DocumentPicker({
               <div
                 key={document.id}
                 className="flex items-center gap-3 py-2 px-4 hover:bg-gray-50 cursor-pointer"
-                onClick={() => subscribeToDocument(document)}
+                onClick={() => updateStateWithSubscription(document)}
               >
                 <Checkbox
                   checked={document.isSubscribed}
-                  onCheckedChange={() => subscribeToDocument(document)}
+                  onCheckedChange={() => updateStateWithSubscription(document)}
                   onClick={(e) => e.stopPropagation()}
                 />
                 <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -511,8 +535,11 @@ export function DocumentPicker({
           <Button variant="outline" onClick={onCancel} disabled={syncing}>
             Cancel
           </Button>
-          <Button onClick={onComplete} disabled={syncing || !documents?.length}>
-            Done
+          <Button
+            onClick={handleComplete}
+            disabled={syncing || !documents?.length}
+          >
+            Save Configuration
           </Button>
         </DialogFooter>
       </DialogContent>
