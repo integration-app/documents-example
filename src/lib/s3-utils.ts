@@ -1,4 +1,8 @@
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+} from "@aws-sdk/client-s3";
 import { downloadFile } from "./download-utils";
 
 const s3Client = new S3Client({
@@ -36,7 +40,7 @@ export async function uploadToS3(
 ): Promise<string> {
   const keyWithExtension = `${key}.${extension}`;
   const uploadParams = {
-    Bucket: process.env.AWS_BUCKET_NAME!,
+    Bucket: process.env.AWS_BUCKET_NAME,
     Key: keyWithExtension,
     Body: body,
   };
@@ -44,4 +48,14 @@ export async function uploadToS3(
   await s3Client.send(new PutObjectCommand(uploadParams));
 
   return keyWithExtension;
+}
+
+export async function getS3ObjectStream(s3Key: string) {
+  const command = new GetObjectCommand({
+    Bucket: process.env.AWS_BUCKET_NAME,
+    Key: s3Key,
+  });
+
+  const response = await s3Client.send(command);
+  return response.Body;
 }

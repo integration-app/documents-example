@@ -81,11 +81,46 @@ export default function KnowledgePage() {
     }
   };
 
-  const downloadFileToDisk = (downloadURI: string) => {
-    const a = document.createElement("a");
-    a.href = downloadURI;
-    a.download = "document.pdf";
-    a.click();
+  const downloadFileToDisk = async (docId: string) => {
+    try {
+      const response = await fetch(`/api/documents/${docId}/stream`, {
+        headers: getAuthHeaders(),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to download document");
+      }
+
+      // Get filename from content-disposition header or use a default
+      const contentDisposition = response.headers.get("content-disposition");
+      let filename = "document";
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      // Create blob from the stream
+      const blob = await response.blob();
+
+      // Create a download link and trigger it
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+
+      // Cleanup
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(link);
+
+      toast.success("Document downloaded successfully");
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Failed to download document");
+    }
   };
 
   const DocumentActions = ({ doc }: { doc: Document }) => {
@@ -97,6 +132,7 @@ export default function KnowledgePage() {
               size="sm"
               className="h-8 w-8 p-0"
               title="Redownload document"
+              onClick={downloadDocument}
             >
               <Icons.refresh className="h-4 w-4" />
             </Button>
@@ -114,7 +150,7 @@ export default function KnowledgePage() {
         {doc.downloadURI && (
           <Button
             size="sm"
-            onClick={() => downloadFileToDisk(doc.downloadURI as string)}
+            onClick={() => downloadFileToDisk(doc.id as string)}
             className="h-8 w-8 p-0"
             title="Download document"
           >
@@ -222,30 +258,7 @@ export default function KnowledgePage() {
     );
   };
 
-  const downloadDocument = async (connectionId: string, document: Document) => {
-    try {
-      const response = await fetch(
-        `/api/integrations/${connectionId}/download`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders(),
-          },
-          body: JSON.stringify({ documentId: document.id }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to download document");
-      }
-
-      toast.success("Document download scheduled");
-    } catch (error) {
-      console.error("Download error:", error);
-      toast.error("Failed to download document");
-    }
-  };
+  const downloadDocument = async () => {};
 
   if (loading) {
     return (
