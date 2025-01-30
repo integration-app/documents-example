@@ -1,19 +1,25 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
-import { getAuthHeaders } from '@/app/auth-provider';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { getAuthHeaders } from "@/app/auth-provider";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { Integration } from '@integration-app/sdk';
+import { Integration } from "@integration-app/sdk";
 import { Input } from "@/components/ui/input";
-import { Document } from '@/models/document';
-import { 
-  FileIcon, 
-  RefreshCcwIcon, 
-  Loader2Icon, 
+import { Document } from "@/models/document";
+import {
+  FileIcon,
+  RefreshCcwIcon,
+  Loader2Icon,
   ExternalLinkIcon,
   ChevronRightIcon,
-  FolderIcon
+  FolderIcon,
 } from "lucide-react";
 
 const Icons = {
@@ -22,7 +28,7 @@ const Icons = {
   chevronRight: ChevronRightIcon,
   refresh: RefreshCcwIcon,
   spinner: Loader2Icon,
-  externalLink: ExternalLinkIcon
+  externalLink: ExternalLinkIcon,
 } as const;
 
 interface DocumentPickerProps {
@@ -38,7 +44,7 @@ interface BreadcrumbItem {
   title: string;
 }
 
-export function DocumentPicker({ 
+export function DocumentPicker({
   integration,
   onComplete,
   onCancel,
@@ -50,7 +56,7 @@ export function DocumentPicker({
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
@@ -72,12 +78,12 @@ export function DocumentPicker({
       );
 
       if (!response.ok) {
-        throw new Error('Failed to check sync status');
+        throw new Error("Failed to check sync status");
       }
 
       const data = await response.json();
-      
-      if (data.status === 'in_progress') {
+
+      if (data.status === "in_progress") {
         setSyncing(true);
         startPolling();
       } else {
@@ -85,8 +91,8 @@ export function DocumentPicker({
         fetchDocuments();
       }
     } catch (error) {
-      console.error('Error checking sync status:', error);
-      setError('Failed to check sync status');
+      console.error("Error checking sync status:", error);
+      setError("Failed to check sync status");
       setCheckedInitialSync(true);
     }
   };
@@ -100,28 +106,28 @@ export function DocumentPicker({
         );
 
         if (!response.ok) {
-          throw new Error('Failed to check sync status');
+          throw new Error("Failed to check sync status");
         }
 
         const data = await response.json();
-        
-        if (data.status === 'completed') {
+
+        if (data.status === "completed") {
           clearInterval(pollInterval);
           setSyncing(false);
           setCheckedInitialSync(true);
           fetchDocuments();
-        } else if (data.status === 'failed') {
+        } else if (data.status === "failed") {
           clearInterval(pollInterval);
           setSyncing(false);
           setCheckedInitialSync(true);
-          setError('Sync failed: ' + (data.error || 'Unknown error'));
+          setError("Sync failed: " + (data.error || "Unknown error"));
         }
       } catch (error) {
         clearInterval(pollInterval);
         setSyncing(false);
         setCheckedInitialSync(true);
-        setError('Failed to check sync status');
-        console.error('Sync status error:', error);
+        setError("Failed to check sync status");
+        console.error("Sync status error:", error);
       }
     }, 2000);
 
@@ -130,39 +136,42 @@ export function DocumentPicker({
 
   const startSync = async () => {
     if (!integration.connection?.id) return;
-    
+
     setSyncing(true);
     setError(null);
-    
+
     try {
-      const syncResponse = await fetch(`/api/integrations/${integration.connection.id}/sync`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify({
-          integrationId: integration.key,
-          integrationName: integration.name,
-          integrationLogo: integration.logoUri
-        })
-      });
+      const syncResponse = await fetch(
+        `/api/integrations/${integration.connection.id}/sync`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
+          body: JSON.stringify({
+            integrationId: integration.key,
+            integrationName: integration.name,
+            integrationLogo: integration.logoUri,
+          }),
+        }
+      );
 
       if (!syncResponse.ok) {
-        throw new Error('Failed to start sync');
+        throw new Error("Failed to start sync");
       }
 
       startPolling();
     } catch (error) {
-      console.error('Failed to start sync:', error);
-      setError('Failed to start sync');
+      console.error("Failed to start sync:", error);
+      setError("Failed to start sync");
       setSyncing(false);
     }
   };
 
   const fetchDocuments = async () => {
     if (!integration.connection?.id) return;
-    
+
     setLoading(true);
     setError(null);
     try {
@@ -172,15 +181,15 @@ export function DocumentPicker({
       );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch documents');
+        throw new Error("Failed to fetch documents");
       }
 
       const { documents: fetchedDocuments } = await response.json();
       setDocuments(fetchedDocuments || []);
       setFilteredDocuments(fetchedDocuments || []);
     } catch (error) {
-      console.error('Error fetching documents:', error);
-      setError('Failed to load documents');
+      console.error("Error fetching documents:", error);
+      setError("Failed to load documents");
       setDocuments([]);
       setFilteredDocuments([]);
     } finally {
@@ -203,7 +212,7 @@ export function DocumentPicker({
     }
 
     const searchLower = searchQuery.toLowerCase();
-    const filtered = documents.filter(doc => 
+    const filtered = documents.filter((doc) =>
       doc.title.toLowerCase().includes(searchLower)
     );
     setFilteredDocuments(filtered);
@@ -217,21 +226,24 @@ export function DocumentPicker({
     try {
       // Get all documents that should be toggled
       const documentsToToggle = getDocumentsToToggle(document);
-      
-      const response = await fetch(`/api/integrations/${integration.connection?.id}/documents/subscription`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify({
-          documentIds: documentsToToggle.map(doc => doc.id),
-          isSubscribed: !document.isSubscribed,
-        }),
-      });
+
+      const response = await fetch(
+        `/api/integrations/${integration.connection?.id}/documents/subscription`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
+          body: JSON.stringify({
+            documentIds: documentsToToggle.map((doc) => doc.id),
+            isSubscribed: !document.isSubscribed,
+          }),
+        }
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to update subscription');
+        throw new Error("Failed to update subscription");
       }
 
       const { documents: updatedDocuments } = (await response.json()) as {
@@ -239,26 +251,26 @@ export function DocumentPicker({
       };
 
       setDocuments(updatedDocuments);
-      
+
       // Update filtered documents while maintaining search
       const searchLower = searchQuery.toLowerCase();
-      const filtered = updatedDocuments.filter(doc => 
+      const filtered = updatedDocuments.filter((doc) =>
         doc.title.toLowerCase().includes(searchLower)
       );
       setFilteredDocuments(filtered);
     } catch (error) {
-      console.error('Error updating subscription:', error);
-      setError('Failed to update subscription');
+      console.error("Error updating subscription:", error);
+      setError("Failed to update subscription");
     }
   };
 
   // Recursively get all documents inside a folder
   const getDocumentsInFolder = (folderId: string): Document[] => {
     const result: Document[] = [];
-    
+
     // Get immediate children
-    const children = documents.filter(doc => doc.parentId === folderId);
-    
+    const children = documents.filter((doc) => doc.parentId === folderId);
+
     for (const child of children) {
       result.push(child);
       // If child is a folder, get its contents recursively
@@ -266,7 +278,7 @@ export function DocumentPicker({
         result.push(...getDocumentsInFolder(child.id));
       }
     }
-    
+
     return result;
   };
 
@@ -275,49 +287,46 @@ export function DocumentPicker({
     if (document.canHaveChildren === false) {
       return [document];
     }
-    
+
     // If it's a folder, get all documents inside it
     return [document, ...getDocumentsInFolder(document.id)];
   };
 
   // Update checkbox to show folder selection state
-  const getFolderSelectionState = (folder: Document): boolean | 'indeterminate' => {
+  const getFolderSelectionState = (
+    folder: Document
+  ): boolean | "indeterminate" => {
     const contents = getDocumentsInFolder(folder.id);
-    const selectedCount = contents.filter(doc => doc.isSubscribed).length;
-    
+    const selectedCount = contents.filter((doc) => doc.isSubscribed).length;
+
     if (selectedCount === 0) return false;
     if (selectedCount === contents.length) return true;
-    return 'indeterminate';
+    return "indeterminate";
   };
 
   // Get folders at current level
-  const currentFolders = filteredDocuments.filter(doc => {
+  const currentFolders = filteredDocuments.filter((doc) => {
     if (currentFolderId === null) {
       // At root level, show documents with no folderId
-      return doc.canHaveChildren && !doc.parentId
+      return doc.canHaveChildren && !doc.parentId;
     }
 
-    return doc.canHaveChildren  && doc.parentId === currentFolderId;
+    return doc.canHaveChildren && doc.parentId === currentFolderId;
   });
 
   // Get documents at current level
-  const currentFiles = filteredDocuments.filter(doc => {
+  const currentFiles = filteredDocuments.filter((doc) => {
     if (currentFolderId === null) {
       // At root level, show documents with no folderId
-      return doc.canHaveChildren === false && !doc.parentId
+      return doc.canHaveChildren === false && !doc.parentId;
     }
     return doc.canHaveChildren === false && doc.parentId === currentFolderId;
   });
 
   const navigateToFolder = (folderId: string, folderTitle: string) => {
     setCurrentFolderId(folderId);
-    setBreadcrumbs(prev => [...prev, { id: folderId, title: folderTitle }]);
+    setBreadcrumbs((prev) => [...prev, { id: folderId, title: folderTitle }]);
   };
-
-  // const navigateToRoot = () => {
-  //   setCurrentFolderId(null);
-  //   setBreadcrumbs([]);
-  // };
 
   const navigateToBreadcrumb = (index: number) => {
     const newBreadcrumbs = breadcrumbs.slice(0, index + 1);
@@ -352,13 +361,42 @@ export function DocumentPicker({
     );
   };
 
+  const subscribeToDocument = (document: Document) => {
+    // Get IDs of all documents that need to be updated
+    const documentsToUpdate = document.canHaveChildren
+      ? [document.id, ...getDocumentsInFolder(document.id).map((doc) => doc.id)]
+      : [document.id];
+    
+    console.log({document, documentsToUpdate})
+
+    // Update documents state
+    const newSubscriptionState = !document.isSubscribed;
+    const newDocuments = documents.map((doc) =>
+      documentsToUpdate.includes(doc.id)
+        ? { ...doc, isSubscribed: newSubscriptionState }
+        : doc
+    );
+
+    console.log({newDocuments}) 
+
+    setDocuments(newDocuments);
+
+    if (searchQuery) {
+      setFilteredDocuments(
+        newDocuments.filter((doc) =>
+          doc.title.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      );
+    }
+  };
+
   const renderContent = () => {
     if (loading || syncing) {
       return (
         <div className="flex flex-col items-center justify-center py-12">
           <Icons.spinner className="h-8 w-8 animate-spin mb-4" />
           <p className="text-sm text-gray-500">
-            {syncing ? 'Syncing documents...' : 'Loading documents...'}
+            {syncing ? "Syncing documents..." : "Loading documents..."}
           </p>
         </div>
       );
@@ -377,20 +415,19 @@ export function DocumentPicker({
       );
     }
 
-
     const hasContent = currentFolders.length > 0 || currentFiles.length > 0;
-    
+
     return (
       <div className="space-y-4">
         {renderBreadcrumbs()}
-        
+
         {!hasContent ? (
           <div className="flex flex-col items-center justify-center py-12">
             <p className="text-gray-500">This folder is empty</p>
           </div>
         ) : (
           <div className="space-y-2">
-            {currentFolders.map(folder => (
+            {currentFolders.map((folder) => (
               <div
                 key={folder.id}
                 className="flex items-center gap-3 py-2 px-4 hover:bg-gray-50 cursor-pointer"
@@ -398,14 +435,19 @@ export function DocumentPicker({
               >
                 <Checkbox
                   checked={getFolderSelectionState(folder)}
-                  onCheckedChange={() => toggleDocument(folder)}
+                  // onCheckedChange={() => toggleDocument(folder)}
+                  onCheckedChange={() => {
+                    subscribeToDocument(folder);
+                  }}
                   onClick={(e) => e.stopPropagation()}
                 />
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <Icons.folder className="h-4 w-4 flex-shrink-0 text-gray-400" />
-                  <span className={cn("truncate", {
-                    "text-blue-600": folder.isSubscribed
-                  })}>
+                  <span
+                    className={cn("truncate", {
+                      "text-blue-600": folder.isSubscribed,
+                    })}
+                  >
                     {folder.title}
                   </span>
                 </div>
@@ -413,22 +455,24 @@ export function DocumentPicker({
               </div>
             ))}
 
-            {currentFiles.map(document => (
+            {currentFiles.map((document) => (
               <div
                 key={document.id}
                 className="flex items-center gap-3 py-2 px-4 hover:bg-gray-50 cursor-pointer"
-                onClick={() => toggleDocument(document)}
+                onClick={() => subscribeToDocument(document)}
               >
                 <Checkbox
                   checked={document.isSubscribed}
-                  onCheckedChange={() => toggleDocument(document)}
+                  onCheckedChange={() => subscribeToDocument(document)}
                   onClick={(e) => e.stopPropagation()}
                 />
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   <Icons.file className="h-4 w-4 flex-shrink-0 text-gray-400" />
-                  <span className={cn("truncate", {
-                    "text-blue-600": document.isSubscribed
-                  })}>
+                  <span
+                    className={cn("truncate", {
+                      "text-blue-600": document.isSubscribed,
+                    })}
+                  >
                     {document.title}
                   </span>
                 </div>
@@ -458,7 +502,7 @@ export function DocumentPicker({
             )}
             <DialogTitle>{integration.name}</DialogTitle>
           </div>
-          
+
           <div className="flex justify-between items-center gap-4">
             <Input
               ref={searchInputRef}
@@ -487,21 +531,14 @@ export function DocumentPicker({
         </div>
 
         <DialogFooter>
-          <Button 
-            variant="outline" 
-            onClick={onCancel}
-            disabled={syncing}
-          >
+          <Button variant="outline" onClick={onCancel} disabled={syncing}>
             Cancel
           </Button>
-          <Button 
-            onClick={onComplete}
-            disabled={syncing || !documents?.length}
-          >
+          <Button onClick={onComplete} disabled={syncing || !documents?.length}>
             Done
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
-} 
+}
