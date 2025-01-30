@@ -52,7 +52,6 @@ export function DocumentPicker({
   onOpenChange,
 }: DocumentPickerProps) {
   const [documents, setDocuments] = useState<Document[]>([]);
-  const [filteredDocuments, setFilteredDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -186,12 +185,10 @@ export function DocumentPicker({
 
       const { documents: fetchedDocuments } = await response.json();
       setDocuments(fetchedDocuments || []);
-      setFilteredDocuments(fetchedDocuments || []);
     } catch (error) {
       console.error("Error fetching documents:", error);
       setError("Failed to load documents");
       setDocuments([]);
-      setFilteredDocuments([]);
     } finally {
       setLoading(false);
     }
@@ -203,20 +200,6 @@ export function DocumentPicker({
       fetchDocuments();
     }
   }, [open, integration.connection?.id]);
-
-  // Handle search locally
-  useEffect(() => {
-    if (!searchQuery) {
-      setFilteredDocuments(documents);
-      return;
-    }
-
-    const searchLower = searchQuery.toLowerCase();
-    const filtered = documents.filter((doc) =>
-      doc.title.toLowerCase().includes(searchLower)
-    );
-    setFilteredDocuments(filtered);
-  }, [searchQuery, documents]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -251,13 +234,6 @@ export function DocumentPicker({
       };
 
       setDocuments(updatedDocuments);
-
-      // Update filtered documents while maintaining search
-      const searchLower = searchQuery.toLowerCase();
-      const filtered = updatedDocuments.filter((doc) =>
-        doc.title.toLowerCase().includes(searchLower)
-      );
-      setFilteredDocuments(filtered);
     } catch (error) {
       console.error("Error updating subscription:", error);
       setError("Failed to update subscription");
@@ -304,18 +280,31 @@ export function DocumentPicker({
     return "indeterminate";
   };
 
+  // Update the folder and file filtering logic
+  const getFilteredDocuments = () => {
+    let filtered = documents;
+    
+    if (searchQuery) {
+      const searchLower = searchQuery.toLowerCase();
+      filtered = documents.filter((doc) =>
+        doc.title.toLowerCase().includes(searchLower)
+      );
+    }
+    
+    return filtered;
+  };
+
   // Get folders at current level
-  const currentFolders = filteredDocuments.filter((doc) => {
+  const currentFolders = getFilteredDocuments().filter((doc) => {
     if (currentFolderId === null) {
       // At root level, show documents with no folderId
       return doc.canHaveChildren && !doc.parentId;
     }
-
     return doc.canHaveChildren && doc.parentId === currentFolderId;
   });
 
   // Get documents at current level
-  const currentFiles = filteredDocuments.filter((doc) => {
+  const currentFiles = getFilteredDocuments().filter((doc) => {
     if (currentFolderId === null) {
       // At root level, show documents with no folderId
       return doc.canHaveChildren === false && !doc.parentId;
@@ -367,8 +356,6 @@ export function DocumentPicker({
       ? [document.id, ...getDocumentsInFolder(document.id).map((doc) => doc.id)]
       : [document.id];
     
-    console.log({document, documentsToUpdate})
-
     // Update documents state
     const newSubscriptionState = !document.isSubscribed;
     const newDocuments = documents.map((doc) =>
@@ -377,17 +364,7 @@ export function DocumentPicker({
         : doc
     );
 
-    console.log({newDocuments}) 
-
     setDocuments(newDocuments);
-
-    if (searchQuery) {
-      setFilteredDocuments(
-        newDocuments.filter((doc) =>
-          doc.title.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      );
-    }
   };
 
   const renderContent = () => {
