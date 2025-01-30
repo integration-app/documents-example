@@ -12,6 +12,7 @@ export interface Document {
   userId: string;
   isSubscribed: boolean;
   content?: string;
+  lastSyncedAt: string;
 }
 
 interface DocumentWithConnection extends Document {
@@ -38,6 +39,10 @@ const documentSchema = new Schema<DocumentWithConnection>(
       default: false,
     },
     content: {
+      type: String,
+      default: null,
+    },
+    lastSyncedAt: {
       type: String,
       default: null,
     },
