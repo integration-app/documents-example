@@ -13,6 +13,7 @@ export interface Document {
   isSubscribed: boolean;
   content?: string;
   lastSyncedAt: string;
+  downloadURI?: string,
 }
 
 interface DocumentWithConnection extends Document {
@@ -28,6 +29,7 @@ const documentSchema = new Schema<DocumentWithConnection>(
     createdAt: String,
     updatedAt: String,
     resourceURI: String,
+    downloadURI: String,
     parentId: {
       type: String,
       default: null,
@@ -45,7 +47,7 @@ const documentSchema = new Schema<DocumentWithConnection>(
     lastSyncedAt: {
       type: String,
       default: null,
-    },
+    }
   },
   {
     _id: false,

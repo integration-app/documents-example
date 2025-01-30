@@ -1,6 +1,8 @@
 import connectDB from "@/lib/mongodb";
+import { processAndUploadFile } from "@/lib/s3-utils";
 import { DocumentModel } from "@/models/document";
 import { NextResponse } from "next/server";
+import path from "path";
 
 interface WebhookPayload {
   downloadURI?: string;
@@ -9,10 +11,17 @@ interface WebhookPayload {
   connectionId: string;
 }
 
+/**
+ * This endpoint is called when a download flow for a document is complete
+ *
+ * - We want to update the document with new content if provided
+ * - When new resourceURI is provided, we want to download the file into our own storage
+ *   and update the document with the new downloadURI
+ */
+
 export async function POST(request: Request) {
   try {
     const payload: WebhookPayload = await request.json();
-
     const { downloadURI, documentId, text, connectionId } = payload;
 
     await connectDB();
@@ -24,12 +33,33 @@ export async function POST(request: Request) {
 
     if (!document) {
       console.error(`Document with id ${documentId} not found`);
+      return NextResponse.json(
+        { error: "Document not found" },
+        { status: 404 }
+      );
+    }
+
+    let s3Url: string | undefined;
+
+    if (downloadURI) {
+      try {
+        const fileExtension = path.extname(downloadURI);
+        const s3Key = `${connectionId}/${documentId}${fileExtension}`;
+
+        s3Url = await processAndUploadFile(downloadURI, s3Key);
+      } catch (error) {
+        console.error("Failed to process file:", error);
+        return NextResponse.json(
+          { error: "Failed to process file" },
+          { status: 500 }
+        );
+      }
     }
 
     const update: Record<string, unknown> = {
       lastSyncedAt: new Date().toISOString(),
-      ...(downloadURI && { resourceURI: downloadURI }),
       ...(text && { content: text }),
+      ...(downloadURI && s3Url && { downloadURI: s3Url }),
     };
 
     await DocumentModel.updateOne(
@@ -40,7 +70,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error("Failed to process webhook:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json({ error: "Webhook received" }, { status: 200 });
 }
