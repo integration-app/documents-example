@@ -218,7 +218,7 @@ export function DocumentPicker({
       // Get all documents that should be toggled
       const documentsToToggle = getDocumentsToToggle(document);
       
-      const response = await fetch(`/api/integrations/${integration.connection?.id}/documents`, {
+      const response = await fetch(`/api/integrations/${integration.connection?.id}/documents/subscription`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

@@ -97,7 +97,8 @@ async function syncDocuments(connectionId: string, request: NextRequest) {
     
     } while (cursor);
 
-    // Update with new documents
+  
+    // Mark sync for the connection as completed
      await KnowledgeModel.findOneAndUpdate(
       { connectionId },
       { 
