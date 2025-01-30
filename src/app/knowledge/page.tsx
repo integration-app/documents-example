@@ -132,7 +132,7 @@ export default function KnowledgePage() {
               size="sm"
               className="h-8 w-8 p-0"
               title="Redownload document"
-              onClick={downloadDocument}
+              onClick={() => downloadDocument(doc.id as string, doc.connectionId)}
             >
               <Icons.refresh className="h-4 w-4" />
             </Button>
@@ -258,7 +258,23 @@ export default function KnowledgePage() {
     );
   };
 
-  const downloadDocument = async () => {};
+  const downloadDocument = async (docId: string, connectionId: string) => {
+    const response = await fetch(
+      `/api/integrations/${connectionId}/download `,
+      {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ documentId: docId }),
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error("Failed to download document");
+    }
+
+    const data = await response.json();
+    console.log({ data });
+  };
 
   if (loading) {
     return (

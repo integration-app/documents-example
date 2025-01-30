@@ -35,7 +35,7 @@ export async function PATCH(
     const token = await generateIntegrationToken(auth);
     const integrationApp = new IntegrationAppClient({ token });
 
-    // Initial download for subscribed documents
+    // Trigger download for subscribed documents
     for (const documentId of documentIds) {
       const document = await DocumentModel.findOne({
         connectionId,

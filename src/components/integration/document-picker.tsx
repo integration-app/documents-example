@@ -211,7 +211,7 @@ export function DocumentPicker({
       const documentsToToggle = getDocumentsToToggle(document);
 
       const response = await fetch(
-        `/api/integrations/${integration.connection?.id}/documents/subscription`,
+        `/api/integrations/${integration.connection?.id}/documents/subscribe`,
         {
           method: "PATCH",
           headers: {
@@ -369,7 +369,7 @@ export function DocumentPicker({
     };
 
     const response = await fetch(
-      `/api/integrations/${integration.connection?.id}/documents/subscription`,
+      `/api/integrations/${integration.connection?.id}/documents/subscribe`,
       {
         method: "PATCH",
         body: JSON.stringify(payload),

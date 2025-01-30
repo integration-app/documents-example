@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { IntegrationAppClient } from '@integration-app/sdk';
-import { getAuthFromRequest } from '@/lib/server-auth';
-import { generateIntegrationToken } from '@/lib/integration-token';
+import { NextRequest, NextResponse } from "next/server";
+import { IntegrationAppClient } from "@integration-app/sdk";
+import { getAuthFromRequest } from "@/lib/server-auth";
+import { generateIntegrationToken } from "@/lib/integration-token";
 
 export async function POST(
   request: NextRequest,
@@ -16,19 +16,19 @@ export async function POST(
 
     const result = await integrationApp
       .connection(connectionId)
-      .flow('download-document-as-text')
+      .flow("download-document")
       .run({
         input: {
-          id: documentId
-        }
+          documentId,
+        },
       });
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Download error:', error);
+    console.error("Download error:", error);
     return NextResponse.json(
-      { error: 'Failed to download document' },
+      { error: "Failed to download document" },
       { status: 500 }
     );
   }
-} 
+}
