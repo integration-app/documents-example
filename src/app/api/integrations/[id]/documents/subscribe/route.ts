@@ -45,10 +45,16 @@ export async function PATCH(
       const isAFolder = document?.canHaveChildren;
       const unsubScribeFile = !isSubscribed;
       const noDocumentFound = !document;
+      const documentIsDownloading = document?.isDownloading;
 
-      if (isAFolder || unsubScribeFile || noDocumentFound) {
+      if (isAFolder || unsubScribeFile || noDocumentFound || documentIsDownloading) {
         continue;
       }
+
+      await DocumentModel.updateOne(
+        { connectionId, id: documentId },
+        { $set: { isDownloading: true } }
+      );
 
       await integrationApp
         .connection(connectionId)

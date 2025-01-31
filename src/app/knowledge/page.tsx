@@ -17,6 +17,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { DocumentViewer } from "@/components/document-viewer";
+import { Badge } from "@/components/ui/badge";
 
 const Icons = {
   file: FileIcon,
@@ -126,36 +127,47 @@ export default function KnowledgePage() {
   const DocumentActions = ({ doc }: { doc: Document }) => {
     return (
       <>
-        {doc.content ||
-          (doc.downloadURI && (
-            <Button
-              size="sm"
-              className="h-8 w-8 p-0"
-              title="Redownload document"
-              onClick={() => downloadDocument(doc.id as string, doc.connectionId)}
-            >
-              <Icons.refresh className="h-4 w-4" />
-            </Button>
-          ))}
-        {doc.content && (
-          <Button
-            size="sm"
-            onClick={() => setViewingDocument(doc)}
-            className="h-8 w-8 p-0"
-            title="View content"
-          >
-            <Icons.file className="h-4 w-4" />
-          </Button>
+        {doc.isDownloading && (
+          <Badge variant="secondary" className="gap-1">
+            <Icons.spinner className="h-3 w-3 animate-spin" />
+            <span>Downloading</span>
+          </Badge>
         )}
-        {doc.downloadURI && (
-          <Button
-            size="sm"
-            onClick={() => downloadFileToDisk(doc.id as string)}
-            className="h-8 w-8 p-0"
-            title="Download document"
-          >
-            <Icons.download className="h-4 w-4" />
-          </Button>
+        
+        {!doc.isDownloading && (
+          <>
+            {doc.content ||
+              (doc.downloadURI && (
+                <Button
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                  title="Redownload document"
+                  onClick={() => downloadDocument(doc.id as string, doc.connectionId)}
+                >
+                  <Icons.refresh className="h-4 w-4" />
+                </Button>
+              ))}
+            {doc.content && (
+              <Button
+                size="sm"
+                onClick={() => setViewingDocument(doc)}
+                className="h-8 w-8 p-0"
+                title="View content"
+              >
+                <Icons.file className="h-4 w-4" />
+              </Button>
+            )}
+            {doc.downloadURI && (
+              <Button
+                size="sm"
+                onClick={() => downloadFileToDisk(doc.id as string)}
+                className="h-8 w-8 p-0"
+                title="Download document"
+              >
+                <Icons.download className="h-4 w-4" />
+              </Button>
+            )}
+          </>
         )}
       </>
     );

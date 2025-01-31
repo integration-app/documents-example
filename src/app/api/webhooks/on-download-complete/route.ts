@@ -58,6 +58,7 @@ export async function POST(request: Request) {
 
     const update: Record<string, unknown> = {
       lastSyncedAt: new Date().toISOString(),
+      isDownloading: false,
       ...(text && { content: text }),
       ...(downloadURI && s3Url && { downloadURI: s3Url }),
     };

@@ -14,6 +14,7 @@ export interface Document {
   content?: string;
   lastSyncedAt: string;
   downloadURI?: string,
+  isDownloading?: boolean;
 }
 
 interface DocumentWithConnection extends Document {
@@ -47,7 +48,8 @@ const documentSchema = new Schema<DocumentWithConnection>(
     lastSyncedAt: {
       type: String,
       default: null,
-    }
+    },
+    isDownloading: { type: Boolean, default: false },
   },
   {
     _id: false,
