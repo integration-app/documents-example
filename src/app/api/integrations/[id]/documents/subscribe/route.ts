@@ -58,6 +58,10 @@ export async function PATCH(
             documentId,
           },
         });
+
+      console.log(
+        `calling download-document in integration flow for document ${documentId}`
+      );
     }
 
     return NextResponse.json({ success: true });

@@ -513,10 +513,7 @@ export function DocumentPicker({
           <Button variant="outline" onClick={onCancel} disabled={syncing}>
             Cancel
           </Button>
-          <Button
-            onClick={handleDone}
-            disabled={isSubscribing}
-          >
+          <Button onClick={handleDone} disabled={isSubscribing}>
             Done
           </Button>
         </DialogFooter>
