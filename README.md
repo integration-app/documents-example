@@ -124,3 +124,25 @@ The template includes a complete example of importing documents from external so
 ## License
 
 MIT
+
+## Using mongodb via Docker
+
+### Prerequisites
+- Docker and Docker Compose installed on your machine
+- Node.js (version specified in .nvmrc)
+- npm or yarn
+
+### Setting up MongoDB
+If you want to use MongoDB via Docker, you can do so by running the following command:
+
+1. Start the MongoDB instance using Docker:
+
+```bash
+docker-compose up
+```
+
+You can now use the `MONGODB_URI` environment variable to connect to the database:
+
+```env
+MONGODB_URI=mongodb://admin:password123@localhost:27017/knowledge
+```
