@@ -9,10 +9,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const connectionId = (await params).id;
+  const { documentId } = await request.json();
+  
   try {
-    const connectionId = (await params).id;
-    const { documentId } = await request.json();
-
     await connectDB();
 
     // Check if document exists and isn't already downloading
@@ -57,12 +57,9 @@ export async function POST(
     return NextResponse.json(result);
   } catch (error) {
     console.error("Download error:", error);
-    
+
     // Reset downloading status in case of error
     try {
-      const { documentId } = await request.json();
-      const connectionId = (await params).id;
-      
       await DocumentModel.updateOne(
         { connectionId, id: documentId },
         { $set: { isDownloading: false } }
