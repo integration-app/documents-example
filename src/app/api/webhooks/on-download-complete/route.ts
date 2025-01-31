@@ -1,15 +1,16 @@
+import { z } from "zod";
 import connectDB from "@/lib/mongodb";
 import { processAndUploadFile } from "@/lib/s3-utils";
 import { DocumentModel } from "@/models/document";
 import { NextResponse } from "next/server";
 import path from "path";
 
-interface WebhookPayload {
-  downloadURI?: string;
-  documentId: string;
-  text?: string;
-  connectionId: string;
-}
+const onDownloadCompleteWebhookPayloadSchema = z.object({
+  downloadURI: z.string().url().optional(),
+  documentId: z.string(),
+  text: z.string().optional(),
+  connectionId: z.string(),
+});
 
 /**
  * This endpoint is called when a download flow for a document is complete
@@ -21,7 +22,24 @@ interface WebhookPayload {
 
 export async function POST(request: Request) {
   try {
-    const payload: WebhookPayload = await request.json();
+    const rawPayload = await request.json();
+
+    // Validate the payload
+    const validationResult =
+      onDownloadCompleteWebhookPayloadSchema.safeParse(rawPayload);
+
+    if (!validationResult.success) {
+      console.error("Invalid webhook payload:", validationResult.error);
+      return NextResponse.json(
+        {
+          error: "Invalid webhook payload",
+          details: validationResult.error.format(),
+        },
+        { status: 400 }
+      );
+    }
+
+    const payload = validationResult.data;
     const { downloadURI, documentId, text, connectionId } = payload;
 
     await connectDB();
