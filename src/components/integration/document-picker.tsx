@@ -21,6 +21,7 @@ import {
   ChevronRightIcon,
   FolderIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 
 const Icons = {
   file: FileIcon,
@@ -60,6 +61,7 @@ export function DocumentPicker({
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
   const [checkedInitialSync, setCheckedInitialSync] = useState(false);
+  const [isSubscribing, setIsSubscribing] = useState(false);
 
   useEffect(() => {
     if (open && integration.connection?.id && !checkedInitialSync) {
@@ -205,41 +207,6 @@ export function DocumentPicker({
     setSearchQuery(e.target.value);
   };
 
-  const handleComplete = async (document: Document) => {
-    try {
-      // Get all documents that should be toggled
-      const documentsToToggle = getDocumentsToToggle(document);
-
-      const response = await fetch(
-        `/api/integrations/${integration.connection?.id}/documents/subscribe`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders(),
-          },
-          body: JSON.stringify({
-            documentIds: documentsToToggle.map((doc) => doc.id),
-            isSubscribed: !document.isSubscribed,
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to update subscription");
-      }
-
-      const { documents: updatedDocuments } = (await response.json()) as {
-        documents: Document[];
-      };
-
-      setDocuments(updatedDocuments);
-    } catch (error) {
-      console.error("Error updating subscription:", error);
-      setError("Failed to update subscription");
-    }
-  };
-
   // Recursively get all documents inside a folder
   const getDocumentsInFolder = (folderId: string): Document[] => {
     const result: Document[] = [];
@@ -256,16 +223,6 @@ export function DocumentPicker({
     }
 
     return result;
-  };
-
-  // Get all documents that should be toggled when selecting a document/folder
-  const getDocumentsToToggle = (document: Document): Document[] => {
-    if (document.canHaveChildren === false) {
-      return [document];
-    }
-
-    // If it's a folder, get all documents inside it
-    return [document, ...getDocumentsInFolder(document.id)];
   };
 
   // Update the folder and file filtering logic
@@ -338,10 +295,19 @@ export function DocumentPicker({
     );
   };
 
-  const updateStateWithSubscription = async (document: Document) => {
+  /**
+   * Once a document is toggled, we need to update it's state and all it's children
+   * in the local state and then persist the state to the backend.
+   *
+   * The backend will update the state of the documents in the database
+   * and fire off other calls Get the documents associate file and or text
+   */
+  const subscribeDocument = async (document: Document) => {
+    setIsSubscribing(true);
+
     const currentDocuments = [...documents];
 
-    // Update state optimistically by updating the state of the document and all its children
+    // Get all documents that should be toggled
     const documentsToUpdate = document.canHaveChildren
       ? [document.id, ...getDocumentsInFolder(document.id).map((doc) => doc.id)]
       : [document.id];
@@ -356,40 +322,52 @@ export function DocumentPicker({
     });
 
     /**
-     * Update the subscription state of affected documents in the database
+     * Update state optimistically
      */
     setDocuments(newDocuments);
 
-    /**
-     * Persist state to backend
-     */
     const payload = {
       documentIds: documentsToUpdate,
       isSubscribed: newSubscriptionState,
     };
 
-    const response = await fetch(
-      `/api/integrations/${integration.connection?.id}/documents/subscribe`,
-      {
-        method: "PATCH",
-        body: JSON.stringify(payload),
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeaders(),
-        },
-      }
-    );
+    /**
+     * Persist state to backend
+     */
+    try {
+      const response = await fetch(
+        `/api/integrations/${integration.connection?.id}/documents/subscribe`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(payload),
+          headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaders(),
+          },
+        }
+      );
 
-    if (!response.ok) {
+      if (!response.ok) {
+        /**
+         * Reverse optimistic update since the database update failed
+         */
+        setDocuments(currentDocuments);
+      }
+    } catch (error) {
       /**
        * Reverse optimistic update since the database update failed
        */
       setDocuments(currentDocuments);
+
+      toast.error("Failed to update subscription: " + error);
+    } finally {
+      setIsSubscribing(false);
     }
+  };
 
-    const data = await response.json();
-
-    console.log({ data });
+  const handleDone = () => {
+    onComplete();
+    onOpenChange(false);
   };
 
   const renderContent = () => {
@@ -438,7 +416,7 @@ export function DocumentPicker({
                 <Checkbox
                   checked={folder.isSubscribed}
                   onCheckedChange={() => {
-                    updateStateWithSubscription(folder);
+                    subscribeDocument(folder);
                   }}
                   onClick={(e) => e.stopPropagation()}
                 />
@@ -460,11 +438,11 @@ export function DocumentPicker({
               <div
                 key={document.id}
                 className="flex items-center gap-3 py-2 px-4 hover:bg-gray-50 cursor-pointer"
-                onClick={() => updateStateWithSubscription(document)}
+                onClick={() => subscribeDocument(document)}
               >
                 <Checkbox
                   checked={document.isSubscribed}
-                  onCheckedChange={() => updateStateWithSubscription(document)}
+                  onCheckedChange={() => subscribeDocument(document)}
                   onClick={(e) => e.stopPropagation()}
                 />
                 <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -536,10 +514,10 @@ export function DocumentPicker({
             Cancel
           </Button>
           <Button
-            onClick={handleComplete}
-            disabled={syncing || !documents?.length}
+            onClick={handleDone}
+            disabled={isSubscribing}
           >
-            Save Configuration
+            Done
           </Button>
         </DialogFooter>
       </DialogContent>
