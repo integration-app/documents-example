@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { DocumentModel } from "@/models/document";
 import connectDB from "@/lib/mongodb";
+import { deleteFileFromS3 } from "@/lib/s3-utils";
 
 /**
  * This webhook is when a document is deleted of a users app.
@@ -38,6 +39,20 @@ export async function POST(request: Request) {
     if (!document) {
       console.log(`No document found with id: ${payload.id}`);
       return NextResponse.json({ message: "ok" });
+    }
+
+    if (document.downloadURI) {
+      try {
+        await deleteFileFromS3(document.downloadURI);
+        console.log(
+          `Successfully deleted file with key ${document.downloadURI} from S3`
+        );
+      } catch (s3Error) {
+        console.error(
+          `Failed to delete file from S3: ${document.downloadURI}`,
+          s3Error
+        );
+      }
     }
 
     console.log(`Successfully deleted document ${payload.id}`);
