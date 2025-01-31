@@ -22,9 +22,8 @@ const s3Client = new S3Client({
 export async function processAndUploadFile(downloadURI: string, s3Key: string) {
   const { buffer, extension } = await downloadFile(downloadURI);
   
-  const key = await uploadToS3(s3Key, buffer, extension ?? "");
+  return await uploadToS3(s3Key, buffer, extension ?? "");
 
-  return key;
 }
 
 /**
