@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { IntegrationAppClient } from "@integration-app/sdk";
 import { getAuthFromRequest } from "@/lib/server-auth";
 import { generateIntegrationToken } from "@/lib/integration-token";
 import connectDB from "@/lib/mongodb";
 import { DocumentModel } from "@/models/document";
+import { triggerDownloadDocumentFlow } from "@/lib/flows";
 
 export async function POST(
   request: NextRequest,
@@ -11,7 +11,7 @@ export async function POST(
 ) {
   const connectionId = (await params).id;
   const { documentId } = await request.json();
-  
+
   try {
     await connectDB();
 
@@ -43,16 +43,12 @@ export async function POST(
 
     const auth = getAuthFromRequest(request);
     const token = await generateIntegrationToken(auth);
-    const integrationApp = new IntegrationAppClient({ token });
 
-    const result = await integrationApp
-      .connection(connectionId)
-      .flow("download-document")
-      .run({
-        input: {
-          documentId,
-        },
-      });
+    const result = await triggerDownloadDocumentFlow(
+      token,
+      connectionId,
+      documentId
+    );
 
     return NextResponse.json(result);
   } catch (error) {
