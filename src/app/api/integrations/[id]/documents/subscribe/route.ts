@@ -3,7 +3,7 @@ import connectDB from "@/lib/mongodb";
 import { DocumentModel } from "@/models/document";
 import { getAuthFromRequest } from "@/lib/server-auth";
 import { generateIntegrationToken } from "@/lib/integration-token";
-import { IntegrationAppClient } from "@integration-app/sdk";
+import { triggerDownloadDocumentFlow } from "@/lib/flows";
 
 export async function PATCH(
   request: NextRequest,
@@ -33,7 +33,6 @@ export async function PATCH(
 
     const auth = getAuthFromRequest(request);
     const token = await generateIntegrationToken(auth);
-    const integrationApp = new IntegrationAppClient({ token });
 
     // Trigger download for subscribed documents
     for (const documentId of documentIds) {
@@ -47,7 +46,12 @@ export async function PATCH(
       const noDocumentFound = !document;
       const documentIsDownloading = document?.isDownloading;
 
-      if (isAFolder || unsubScribeFile || noDocumentFound || documentIsDownloading) {
+      if (
+        isAFolder ||
+        unsubScribeFile ||
+        noDocumentFound ||
+        documentIsDownloading
+      ) {
         continue;
       }
 
@@ -56,14 +60,7 @@ export async function PATCH(
         { $set: { isDownloading: true } }
       );
 
-      await integrationApp
-        .connection(connectionId)
-        .flow("download-document")
-        .run({
-          input: {
-            documentId,
-          },
-        });
+      await triggerDownloadDocumentFlow(token, connectionId, documentId);
 
       console.log(
         `calling download-document in integration flow for document ${documentId}`

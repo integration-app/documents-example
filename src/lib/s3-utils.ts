@@ -2,6 +2,7 @@ import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
+  DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { downloadFile } from "./download-utils";
 
@@ -58,4 +59,17 @@ export async function getS3ObjectStream(s3Key: string) {
 
   const response = await s3Client.send(command);
   return response.Body;
+}
+
+/**
+ * Deletes a file from S3 using its URL
+ * @param key - The key (path) of the file to delete in S3
+ */
+export async function deleteFileFromS3(key: string) {
+  const command = new DeleteObjectCommand({
+    Bucket: key,
+    Key: key,
+  });
+
+  await s3Client.send(command);
 }

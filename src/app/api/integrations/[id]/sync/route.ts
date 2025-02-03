@@ -24,6 +24,7 @@ export async function POST(
   try {
     const connectionId = (await params).id;
     const { integrationId, integrationName, integrationLogo } = await request.json() as SyncRequest;
+    const auth = getAuthFromRequest(request);
     
     await connectDB();
 
@@ -32,6 +33,7 @@ export async function POST(
       { connectionId },
       { 
         $set: { 
+          userId: auth.customerId,
           integrationId,
           integrationName,
           integrationLogo,
