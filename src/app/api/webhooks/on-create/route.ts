@@ -25,6 +25,8 @@ const webhookSchema = z.object({
 export async function POST(request: NextRequest) {
   const body = await request.json();
 
+  console.log("Body:", body);
+
   const verificationResult = await verifyIntegrationAppToken(request);
 
   if (!verificationResult) {
