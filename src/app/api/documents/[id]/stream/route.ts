@@ -17,7 +17,7 @@ export async function GET(
     await connectDB();
     const documentId = (await params).id;
 
-    const document = await DocumentModel.findOne({ id: documentId });
+    const document = await DocumentModel.findOne({ id: documentId }, { downloadURI : 1 });
 
     if (!document) {
       return new NextResponse("Document not found", { status: 404 });
