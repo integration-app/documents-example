@@ -23,6 +23,9 @@ export async function GET(
       return new NextResponse("Document not found", { status: 404 });
     }
 
+
+    console.log("Document:", document);
+
     if (!document.downloadURI) {
       return new NextResponse("No download URL available", { status: 404 });
     }
