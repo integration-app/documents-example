@@ -130,23 +130,12 @@ export default function KnowledgePage() {
         {doc.isDownloading && (
           <Badge variant="secondary" className="gap-1">
             <Icons.spinner className="h-3 w-3 animate-spin" />
-            <span>Downloading</span>
+            <span>Saving to Knowledge Base</span>
           </Badge>
         )}
         
         {!doc.isDownloading && (
           <>
-            {doc.content ||
-              (doc.storageKey && (
-                <Button
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                  title="Redownload document"
-                  onClick={() => downloadDocument(doc.id as string, doc.connectionId)}
-                >
-                  <Icons.refresh className="h-4 w-4" />
-                </Button>
-              ))}
             {doc.content && (
               <Button
                 size="sm"
@@ -268,24 +257,6 @@ export default function KnowledgePage() {
         ))}
       </div>
     );
-  };
-
-  const downloadDocument = async (docId: string, connectionId: string) => {
-    const response = await fetch(
-      `/api/integrations/${connectionId}/download `,
-      {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ documentId: docId }),
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error("Failed to download document");
-    }
-
-    const data = await response.json();
-    console.log({ data });
   };
 
   if (loading) {
