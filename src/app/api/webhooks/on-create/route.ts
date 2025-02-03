@@ -3,16 +3,14 @@ import { z } from "zod";
 import connectDB from "@/lib/mongodb";
 import { DocumentModel } from "@/models/document";
 import { triggerDownloadDocumentFlow } from "@/lib/flows";
-import { getAuthFromRequest } from "@/lib/server-auth";
-import { generateIntegrationToken } from "@/lib/integration-token";
 import { findParentSubscription } from "@/lib/document-utils";
+import { KnowledgeModel } from "@/models/knowledge";
 
 /**
  * This webhook is triggered when a document is created
  */
 const webhookSchema = z.object({
   connectionId: z.string(),
-  userId: z.string(),
   fields: z.object({
     id: z.string(),
     title: z.string(),
@@ -38,21 +36,37 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { fields, connectionId, userId } = payload.data;
+    const { fields, connectionId } = payload.data;
 
     await connectDB();
 
+    // The knowledge model has the userId, let's grab it
+    const knowledge = await KnowledgeModel.findOne({ connectionId });
+    const userId = knowledge?.userId;
+
+    if (!userId) {
+      console.error("User ID not found for connection:", connectionId);
+      return NextResponse.json(
+        { error: "User ID not found for connection" },
+        { status: 400 }
+      );
+    }
+
     const existingDoc = await DocumentModel.findOne({ id: fields.id });
 
-    /**
-     * If some parent document is subscribed, we need to subscribe to this document
-     * and kick off the download flow if it's a file
-     */
     if (!existingDoc) {
-      const parentHasSubscription = await findParentSubscription(fields.id);
+      const parentHasSubscription = await findParentSubscription(
+        fields.parentId
+      );
+
+      console.log("Parent has subscription:", parentHasSubscription);
 
       const isFile = !fields.canHaveChildren;
 
+      /**
+       * If some parent document is subscribed, we need to add isSubscribed to this document
+       * and kick off the download flow if it's a file
+       */
       const result = await DocumentModel.bulkWrite([
         {
           insertOne: {
@@ -69,11 +83,23 @@ export async function POST(request: NextRequest) {
 
       console.log("Result:", result);
 
-      const auth = getAuthFromRequest(request);
-      const token = await generateIntegrationToken(auth);
 
       if (isFile && parentHasSubscription) {
-        await triggerDownloadDocumentFlow(token, connectionId, fields.id);
+        try {
+       
+          // TODO: GENERATE A TOKEN
+
+          await triggerDownloadDocumentFlow("token", connectionId, fields.id);
+        
+        } catch (error) {
+         
+          await DocumentModel.updateOne(
+            { id: fields.id },
+            { $set: { isDownloading: false } }
+          );
+
+          console.error("Error triggering download flow:", error);
+        }
       }
     } else {
       console.log(`Document with id ${fields.id} already exists`);

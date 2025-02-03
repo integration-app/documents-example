@@ -1,6 +1,7 @@
 import { Schema, model, models } from 'mongoose';
 import { Document } from './document';
 export interface Knowledge {
+  userId: string;
   connectionId: string;
   integrationId: string;
   integrationName: string;
@@ -14,6 +15,10 @@ export interface Knowledge {
 
 const knowledgeSchema = new Schema<Knowledge>(
   {
+    userId: { 
+      type: String, 
+      required: true, 
+    },
     connectionId: { 
       type: String, 
       required: true, 
