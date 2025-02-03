@@ -30,6 +30,8 @@ export async function GET(
 
     const documents = await DocumentModel.find(query).lean();
 
+    console.log("Documents:", JSON.stringify(documents, null, 2));
+
     return NextResponse.json({ documents });
   } catch (error) {
     console.error("Failed to fetch documents:", error);
@@ -40,32 +42,3 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const connectionId = (await params).id;
-    const { documentIds, isSubscribed } = await request.json();
-
-    await connectDB();
-
-    await DocumentModel.updateMany(
-      {
-        connectionId,
-        id: { $in: documentIds },
-      },
-      { $set: { isSubscribed } }
-    );
-
-    const documents = await DocumentModel.find({ connectionId }).lean();
-
-    return NextResponse.json({ documents });
-  } catch (error) {
-    console.error("Failed to update subscription:", error);
-    return NextResponse.json(
-      { error: "Failed to update subscription" },
-      { status: 500 }
-    );
-  }
-}

@@ -9,6 +9,7 @@ This is an application showcasing how you can implement Importing Documents file
 - Node.js 18+ installed
 - Integration.app workspace credentials (Workspace Key and Secret)
 - MongoDB connection string
+- AWS credentials (for S3)
 
 ## Setup
 
@@ -27,12 +28,21 @@ yarn install
 cp .env-sample .env
 ```
 
-3. Add your Integration.app & database credentials to the `.env` file:
+3. Add your credentials to the `.env` file:
 
 ```env
+# Integration.app
 INTEGRATION_APP_WORKSPACE_KEY=your_workspace_key_here
 INTEGRATION_APP_WORKSPACE_SECRET=your_workspace_secret_here
+
+# MongoDB
 MONGODB_URI=your_mongodb_connection_string
+
+# AWS
+AWS_ACCESS_KEY_ID=your_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=your_aws_secret_access_key
+AWS_REGION=your_aws_region
+AWS_S3_BUCKET_NAME=your_aws_s3_bucket_name
 ```
 
 Retrieve your Integration.app credentials from the workspace settings in the [Integration.app Dashboard](https://console.integration.app).
@@ -124,3 +134,23 @@ The template includes a complete example of importing documents from external so
 ## License
 
 MIT
+
+## Using mongodb via Docker
+
+### Prerequisites
+- Docker and Docker Compose installed on your machine
+
+### Setting up MongoDB
+If you want to use MongoDB via Docker, you can do so by running the following command:
+
+1. Start the MongoDB instance using Docker:
+
+```bash
+docker-compose up
+```
+
+You can now use the `MONGODB_URI` environment variable to connect to the database:
+
+```env
+MONGODB_URI=mongodb://admin:password123@localhost:27017/knowledge
+```
