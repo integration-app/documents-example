@@ -137,7 +137,7 @@ export default function KnowledgePage() {
         {!doc.isDownloading && (
           <>
             {doc.content ||
-              (doc.downloadURI && (
+              (doc.storageKey && (
                 <Button
                   size="sm"
                   className="h-8 w-8 p-0"
@@ -157,7 +157,7 @@ export default function KnowledgePage() {
                 <Icons.file className="h-4 w-4" />
               </Button>
             )}
-            {doc.downloadURI && (
+            {doc.storageKey && (
               <Button
                 size="sm"
                 onClick={() => downloadFileToDisk(doc.id as string)}

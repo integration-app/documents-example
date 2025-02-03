@@ -41,15 +41,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "ok" });
     }
 
-    if (document.downloadURI) {
+    if (document.storageKey) {
       try {
-        await deleteFileFromS3(document.downloadURI);
+        await deleteFileFromS3(document.storageKey);
         console.log(
-          `Successfully deleted file with key ${document.downloadURI} from S3`
+          `Successfully deleted file with key ${document.storageKey} from S3`
         );
       } catch (s3Error) {
         console.error(
-          `Failed to delete file from S3: ${document.downloadURI}`,
+          `Failed to delete file from S3: ${document.storageKey}`,
           s3Error
         );
       }

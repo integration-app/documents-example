@@ -17,7 +17,7 @@ export async function GET(
     await connectDB();
     const documentId = (await params).id;
 
-    const document = await DocumentModel.findOne({ id: documentId }, { downloadURI : 1 });
+    const document = await DocumentModel.findOne({ id: documentId });
 
     if (!document) {
       return new NextResponse("Document not found", { status: 404 });
@@ -26,11 +26,11 @@ export async function GET(
 
     console.log("Document:", document);
 
-    if (!document.downloadURI) {
+    if (!document.storageKey) {
       return new NextResponse("No download URL available", { status: 404 });
     }
 
-    const s3Stream = await getS3ObjectStream(document.downloadURI);
+    const s3Stream = await getS3ObjectStream(document.storageKey);
 
     if (!s3Stream) {
       return new NextResponse("Failed to get document stream", { status: 500 });

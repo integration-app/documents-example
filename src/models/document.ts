@@ -13,7 +13,7 @@ export interface Document {
   isSubscribed: boolean;
   content?: string;
   lastSyncedAt: string;
-  downloadURI?: string;
+  storageKey?: string;
   isDownloading?: boolean;
 }
 
@@ -30,7 +30,7 @@ const documentSchema = new Schema<DocumentWithConnection>(
     createdAt: String,
     updatedAt: String,
     resourceURI: String,
-    downloadURI: {
+    storageKey: {
       type: String,
       default: null,
     },

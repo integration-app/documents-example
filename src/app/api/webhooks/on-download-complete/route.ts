@@ -76,16 +76,14 @@ export async function POST(request: Request) {
       }
     }
 
-    const update: Record<string, unknown> = {
-      lastSyncedAt: new Date().toISOString(),
-      isDownloading: false,
-      ...(text && { content: text }),
-      ...(downloadURI && s3Url && { downloadURI: s3Url }),
-    };
-
     await DocumentModel.updateOne(
       { connectionId, id: documentId },
-      { $set: update }
+      { $set: {
+        lastSyncedAt: new Date().toISOString(),
+        isDownloading: false,
+        ...(text ? { content: text }: {}),
+        ...(downloadURI && s3Url ? { storageKey: s3Url }: {}),
+      } }
     );
 
     return NextResponse.json({ success: true }, { status: 200 });
