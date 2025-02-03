@@ -78,7 +78,7 @@ export async function POST(request: Request) {
 
     await DocumentModel.updateOne(
       { connectionId, id: documentId },
-      { $set: {
+      { $set:{
         lastSyncedAt: new Date().toISOString(),
         isDownloading: false,
         ...(text ? { content: text }: {}),

@@ -82,9 +82,9 @@ export default function KnowledgePage() {
     }
   };
 
-  const downloadFileToDisk = async (docId: string) => {
+  const downloadFileToDisk = async (docId: string, storageKey: string) => {
     try {
-      const response = await fetch(`/api/documents/${docId}/stream`, {
+      const response = await fetch(`/api/documents/${docId}/stream?storageKey=${storageKey}`, {
         headers: getAuthHeaders(),
       });
 
@@ -160,7 +160,7 @@ export default function KnowledgePage() {
             {doc.storageKey && (
               <Button
                 size="sm"
-                onClick={() => downloadFileToDisk(doc.id as string)}
+                onClick={() => downloadFileToDisk(doc.id as string, doc.storageKey!)}
                 className="h-8 w-8 p-0"
                 title="Download document"
               >

@@ -14,20 +14,28 @@ export async function GET(
       return new Response("Unauthorized", { status: 401 });
     }
 
+    const searchParams = request.nextUrl.searchParams;
+    const storageKey = searchParams.get("storageKey");
+
+    if (!storageKey) {
+      return new NextResponse("Storage key is required", { status: 400 });
+    }
+
     await connectDB();
     const documentId = (await params).id;
 
-    const document = await DocumentModel.findOne({ id: documentId });
+    const document = await DocumentModel.findOne({ storageKey, id: documentId });
+
+    console.log("Document:", document);
 
     if (!document) {
       return new NextResponse("Document not found", { status: 404 });
     }
 
-
     console.log("Document:", document);
 
     if (!document.storageKey) {
-      return new NextResponse("No download URL available", { status: 404 });
+      return new NextResponse("No download 3URL available", { status: 404 });
     }
 
     const s3Stream = await getS3ObjectStream(document.storageKey);
