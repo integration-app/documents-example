@@ -24,6 +24,8 @@ export async function POST(request: Request) {
   try {
     const rawPayload = await request.json();
 
+    console.log("Raw payload:", rawPayload);
+
     // Validate the payload
     const validationResult =
       onDownloadCompleteWebhookPayloadSchema.safeParse(rawPayload);
