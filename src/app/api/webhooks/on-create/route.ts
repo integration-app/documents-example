@@ -1,56 +1,60 @@
-import { NextRequest, NextResponse } from "next/server";
-import { z } from "zod";
-import connectDB from "@/lib/mongodb";
-import { DocumentModel } from "@/models/document";
-import { triggerDownloadDocumentFlow } from "@/lib/flows";
+import { verifyIntegrationAppToken } from "@/lib/integration-app-auth";
 import { findParentSubscription } from "@/lib/document-utils";
-import { KnowledgeModel } from "@/models/knowledge";
+import { triggerDownloadDocumentFlow } from "@/lib/flows";
+import { NextRequest, NextResponse } from "next/server";
+import { DocumentModel } from "@/models/document";
+import connectDB from "@/lib/mongodb";
+import { z } from "zod";
 
-/**
- * This webhook is triggered when a document is created
- */
 const webhookSchema = z.object({
   connectionId: z.string(),
   fields: z.object({
-    id: z.string(),
-    title: z.string(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-    parentId: z.string(),
+    id: z.string().min(1),
+    title: z.string().min(1),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+    parentId: z.string().min(1),
     canHaveChildren: z.boolean(),
-    resourceURI: z.string(),
+    resourceURI: z.string().url(),
   }),
 });
 
+/**
+ * This webhook is triggered when a document is created on external apps
+ */
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  console.log("Webhook received:", body);
+
+  const verificationResult = await verifyIntegrationAppToken(request);
+
+  if (!verificationResult) {
+    return NextResponse.json({ error: "Invalid token" }, { status: 401 });
+  }
+
+  const { sub: userId } = verificationResult;
+
+  const payload = webhookSchema.safeParse(body);
+
+  if (!payload.success) {
+    console.error("Invalid webhook payload:", payload.error);
+    return NextResponse.json(
+      { error: "Invalid webhook payload" },
+      { status: 400 }
+    );
+  }
+
+  const { fields, connectionId } = payload.data;
+
+  if (!userId) {
+    console.error("User ID not found for connection:", connectionId);
+    return NextResponse.json(
+      { error: "User ID not found for connection" },
+      { status: 400 }
+    );
+  }
+
   try {
-    const payload = webhookSchema.safeParse(body);
-
-    if (!payload.success) {
-      console.error("Invalid webhook payload:", payload.error);
-      return NextResponse.json(
-        { error: "Invalid webhook payload" },
-        { status: 400 }
-      );
-    }
-
-    const { fields, connectionId } = payload.data;
-
     await connectDB();
-
-    // The knowledge model has the userId, let's grab it
-    const knowledge = await KnowledgeModel.findOne({ connectionId });
-    const userId = knowledge?.userId;
-
-    if (!userId) {
-      console.error("User ID not found for connection:", connectionId);
-      return NextResponse.json(
-        { error: "User ID not found for connection" },
-        { status: 400 }
-      );
-    }
 
     const existingDoc = await DocumentModel.findOne({ id: fields.id });
 
@@ -59,40 +63,36 @@ export async function POST(request: NextRequest) {
         fields.parentId
       );
 
-      console.log("Parent has subscription:", parentHasSubscription);
-
       const isFile = !fields.canHaveChildren;
+
+      const shouldDownload = isFile && parentHasSubscription;
 
       /**
        * If some parent document is subscribed, we need to add isSubscribed to this document
        * and kick off the download flow if it's a file
        */
-      const result = await DocumentModel.bulkWrite([
+      await DocumentModel.bulkWrite([
         {
           insertOne: {
             document: {
               ...fields,
               isSubscribed: parentHasSubscription,
-              isDownloading: isFile && parentHasSubscription,
-              userId: userId,
+              isDownloading: shouldDownload,
+              userId,
               connectionId,
             },
           },
         },
       ]);
 
-      console.log("Result:", result);
-
-
-      if (isFile && parentHasSubscription) {
+      if (shouldDownload) {
         try {
-       
-          // TODO: GENERATE A TOKEN
-
-          await triggerDownloadDocumentFlow("token", connectionId, fields.id);
-        
+          await triggerDownloadDocumentFlow(
+            request.headers.get("x-integration-app-token")!,
+            connectionId,
+            fields.id
+          );
         } catch (error) {
-         
           await DocumentModel.updateOne(
             { id: fields.id },
             { $set: { isDownloading: false } }
