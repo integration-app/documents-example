@@ -32,12 +32,6 @@ export async function triggerDownloadDocumentFlow(
     throw error;
   }
 
-  await doc.updateOne({
-    $set: {
-      isDownloading: false,
-    },
-  });
-
   return runResult;
 
 }
