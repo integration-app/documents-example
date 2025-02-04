@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
 
-    const existingDoc = await DocumentModel.findOne({ id: fields.id });
+    const existingDoc = await DocumentModel.findOne({ id: fields.id, connectionId });
 
     if (!existingDoc) {
       const parentHasSubscription = await findParentSubscription(
