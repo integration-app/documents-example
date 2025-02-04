@@ -4,7 +4,7 @@ import { DocumentModel } from "@/models/document";
 import connectDB from "@/lib/mongodb";
 import { deleteFileFromS3 } from "@/lib/s3-utils";
 import { getAllDocsInTree } from "@/lib/document-utils";
-
+import pMap from "p-map";
 /**
  * This webhook is when a document is deleted of a users app.
  * It is triggered for each child of the deleted document.
@@ -32,13 +32,17 @@ export async function POST(request: Request) {
     await connectDB();
 
     const documentIds = await getAllDocsInTree(payload.id);
-
     const documents = await DocumentModel.find({ id: { $in: documentIds } });
 
-    for (const document of documents) {
-      if (document.storageKey) {
+    // Filter documents that have storageKey
+    const documentsWithStorage = documents.filter(doc => doc.storageKey);
+
+    // Parallel delete from S3 with concurrency of 5
+    await pMap(
+      documentsWithStorage,
+      async (document) => {
         try {
-          await deleteFileFromS3(document.storageKey);
+          await deleteFileFromS3(document.storageKey!);
           console.log(
             `Successfully deleted file with key ${document.storageKey} from S3`
           );
@@ -48,8 +52,9 @@ export async function POST(request: Request) {
             s3Error
           );
         }
-      }
-    }
+      },
+      { concurrency: 5 }
+    );
 
     await DocumentModel.deleteMany({ id: { $in: documentIds } });
 
