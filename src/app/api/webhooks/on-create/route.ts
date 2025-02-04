@@ -58,7 +58,10 @@ export async function POST(request: NextRequest) {
   try {
     await connectDB();
 
-    const existingDoc = await DocumentModel.findOne({ id: fields.id });
+    const existingDoc = await DocumentModel.findOne({
+      id: fields.id,
+      connectionId,
+    });
 
     if (!existingDoc) {
       const parentHasSubscription = await findParentSubscription(
@@ -88,20 +91,11 @@ export async function POST(request: NextRequest) {
       ]);
 
       if (shouldDownload) {
-        try {
           await triggerDownloadDocumentFlow(
             request.headers.get("x-integration-app-token")!,
             connectionId,
             fields.id
           );
-        } catch (error) {
-          await DocumentModel.updateOne(
-            { id: fields.id },
-            { $set: { isDownloading: false } }
-          );
-
-          console.error("Error triggering download flow:", error);
-        }
       }
     } else {
       console.log(`Document with id ${fields.id} already exists`);

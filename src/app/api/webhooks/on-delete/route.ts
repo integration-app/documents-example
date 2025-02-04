@@ -3,13 +3,13 @@ import { z } from "zod";
 import { DocumentModel } from "@/models/document";
 import connectDB from "@/lib/mongodb";
 import { deleteFileFromS3 } from "@/lib/s3-utils";
-
+import { getAllDocsInTree } from "@/lib/document-utils";
+import pMap from "p-map";
 /**
  * This webhook is when a document is deleted of a users app.
  * It is triggered for each child of the deleted document.
  */
 const WebhookPayloadSchema = z.object({
-  source: z.string(),
   id: z.string(),
 });
 
@@ -31,31 +31,36 @@ export async function POST(request: Request) {
 
     await connectDB();
 
-    // Find and delete the document
-    const document = await DocumentModel.findOneAndDelete({
-      id: payload.id,
-    });
+    const documentIds = await getAllDocsInTree(payload.id);
+    const documents = await DocumentModel.find({ id: { $in: documentIds } });
 
-    if (!document) {
-      console.log(`No document found with id: ${payload.id}`);
-      return NextResponse.json({ message: "ok" });
-    }
+    // Filter documents that have storageKey
+    const documentsWithStorage = documents.filter(doc => doc.storageKey);
 
-    if (document.storageKey) {
-      try {
-        await deleteFileFromS3(document.storageKey);
-        console.log(
-          `Successfully deleted file with key ${document.storageKey} from S3`
-        );
-      } catch (s3Error) {
-        console.error(
-          `Failed to delete file from S3: ${document.storageKey}`,
-          s3Error
-        );
-      }
-    }
+    // Parallel delete from S3 with concurrency of 5
+    await pMap(
+      documentsWithStorage,
+      async (document) => {
+        try {
+          await deleteFileFromS3(document.storageKey!);
+          console.log(
+            `Successfully deleted file with key ${document.storageKey} from S3`
+          );
+        } catch (s3Error) {
+          console.error(
+            `Failed to delete file from S3: ${document.storageKey}`,
+            s3Error
+          );
+        }
+      },
+      { concurrency: 5 }
+    );
 
-    console.log(`Successfully deleted document ${payload.id}`);
+    await DocumentModel.deleteMany({ id: { $in: documentIds } });
+
+    console.log(
+      `Successfully deleted document ${payload.id} and all its children`
+    );
     return NextResponse.json({ message: "ok" });
   } catch (error) {
     console.error("Error in on-delete webhook:", error);

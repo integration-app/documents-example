@@ -1,31 +1,32 @@
 import { DocumentModel } from "@/models/document";
 
 /**
- * Recursively fetches all document IDs in a hierarchy starting from a root document
- * @param documentId - The ID of the root document
+ * Get all document IDs in a document tree starting from a root document
+ * @param rootDocumentId - The ID of the root document
  * @returns Array of document IDs including the root and all its descendants
  */
-export async function getDocumentHierarchyIds(
-  documentId: string
+export async function getAllDocsInTree(
+  rootDocumentId: string
 ): Promise<string[]> {
   // Get the root document
-  const rootDoc = await DocumentModel.findById(documentId);
+  const rootDoc = await DocumentModel.findById(rootDocumentId);
   if (!rootDoc) {
     return [];
   }
 
+  // If the root document cannot have children, return the root document ID
   if (!rootDoc.canHaveChildren) {
-    return [documentId];
+    return [rootDocumentId];
   }
 
-  const children = await DocumentModel.find({ parentId: documentId });
+  const children = await DocumentModel.find({ parentId: rootDocumentId });
 
   // Recursively get IDs for all children
   const childrenIds = await Promise.all(
-    children.map((child) => getDocumentHierarchyIds(child.id))
+    children.map((child) => getAllDocsInTree(child.id))
   );
 
-  return [documentId, ...childrenIds.flat()];
+  return [rootDocumentId, ...childrenIds.flat()];
 }
 
 /**
@@ -34,8 +35,12 @@ export async function getDocumentHierarchyIds(
  * @returns Promise<boolean> - Returns true if any parent document is subscribed, false otherwise
  */
 export async function findParentSubscription(
-  parentDocumentId: string
+  parentDocumentId: string | null
 ): Promise<boolean> {
+  if (!parentDocumentId) {
+    return false;
+  }
+
   let document = await DocumentModel.findOne({ id: parentDocumentId });
 
   if (!document) {
