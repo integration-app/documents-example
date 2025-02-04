@@ -4,15 +4,15 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 const webhookSchema = z.object({
-  connectionId: z.string(),
+  connectionId: z.string().min(1).max(100),
   fields: z.object({
-    id: z.string().min(1),
-    title: z.string().min(1),
+    id: z.string().min(1).max(100),
+    title: z.string().min(1).max(255),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
-    parentId: z.string().min(1),
+    parentId: z.string().min(1).max(100),
     canHaveChildren: z.boolean(),
-    resourceURI: z.string().url(),
+    resourceURI: z.string().url().max(2048),
   }),
 });
 
