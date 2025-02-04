@@ -67,7 +67,7 @@ export async function getS3ObjectStream(s3Key: string) {
  */
 export async function deleteFileFromS3(key: string) {
   const command = new DeleteObjectCommand({
-    Bucket: key,
+    Bucket: process.env.AWS_BUCKET_NAME,
     Key: key,
   });
 
