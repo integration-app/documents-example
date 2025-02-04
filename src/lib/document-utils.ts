@@ -34,8 +34,12 @@ export async function getDocumentHierarchyIds(
  * @returns Promise<boolean> - Returns true if any parent document is subscribed, false otherwise
  */
 export async function findParentSubscription(
-  parentDocumentId: string
+  parentDocumentId: string | null
 ): Promise<boolean> {
+  if (!parentDocumentId) {
+    return false;
+  }
+
   let document = await DocumentModel.findOne({ id: parentDocumentId });
 
   if (!document) {

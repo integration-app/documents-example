@@ -1,3 +1,4 @@
+import { DocumentModel } from "@/models/document";
 import { IntegrationAppClient } from "@integration-app/sdk";
 
 export async function triggerDownloadDocumentFlow(
@@ -7,12 +8,36 @@ export async function triggerDownloadDocumentFlow(
 ) {
   const integrationApp = new IntegrationAppClient({ token });
 
-  return await integrationApp
-    .connection(connectionId)
-    .flow("download-document")
-    .run({
+  const doc = await DocumentModel.findOne({ id: documentId });
+
+  if (!doc) {
+    throw new Error(`Document with id ${documentId} not found`);
+  }
+
+  let runResult;
+
+  try {
+    runResult = await integrationApp.connection(connectionId).flow("download-document").run({
       input: {
         documentId,
       },
     });
+  } catch (error) {
+
+    await DocumentModel.updateOne(
+      { id: documentId },
+      { $set: { isDownloading: false } }
+    );
+
+    throw error;
+  }
+
+  await doc.updateOne({
+    $set: {
+      isDownloading: false,
+    },
+  });
+
+  return runResult;
+
 }

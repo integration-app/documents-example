@@ -1,3 +1,4 @@
+import { triggerDownloadDocumentFlow } from "@/lib/flows";
 import { DocumentModel } from "@/models/document";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -33,17 +34,37 @@ export async function POST(request: Request) {
 
     const { fields, connectionId } = payload.data;
 
+    const doc = await DocumentModel.findOne({ id: fields.id, connectionId });
+
+    if (!doc) {
+      console.log(`Document with id ${fields.id} not found`);
+      return NextResponse.json(
+        { message: "Document not found" },
+        { status: 404 }
+      );
+    }
+
+    const isFile = !fields.canHaveChildren;
+
+    const shouldDownload = isFile && doc.isSubscribed;
+
     // TODO: Spread fields once we fix issue in drive connector
-    await DocumentModel.updateOne(
-      { id: fields.id, connectionId },
-      {
-        $set: {
-          title: fields.title,
-          updatedAt: fields.updatedAt,
-          resourceURI: fields.resourceURI,
-        },
-      }
-    );
+    await doc.updateOne({
+      $set: {
+        title: fields.title,
+        updatedAt: fields.updatedAt,
+        resourceURI: fields.resourceURI,
+        isDownloading: shouldDownload,
+      },
+    });
+
+    if (shouldDownload) {
+        await triggerDownloadDocumentFlow(
+          request.headers.get("x-integration-app-token")!,
+          connectionId,
+          fields.id
+        );
+    }
 
     return NextResponse.json({ message: "ok" });
   } catch (error) {
