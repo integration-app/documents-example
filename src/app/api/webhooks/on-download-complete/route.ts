@@ -1,6 +1,6 @@
 import { z } from "zod";
 import connectDB from "@/lib/mongodb";
-import { processAndUploadFile } from "@/lib/s3-utils";
+import { deleteFileFromS3, processAndUploadFile } from "@/lib/s3-utils";
 import { DocumentModel } from "@/models/document";
 import { NextResponse } from "next/server";
 import path from "path";
@@ -24,9 +24,6 @@ export async function POST(request: Request) {
   try {
     const rawPayload = await request.json();
 
-    console.log("Raw payload:", rawPayload);
-
-    // Validate the payload
     const validationResult =
       onDownloadCompleteWebhookPayloadSchema.safeParse(rawPayload);
 
@@ -59,19 +56,34 @@ export async function POST(request: Request) {
       );
     }
 
-    let s3Url: string | undefined;
+    let newStorageKey: string | undefined;
 
     if (downloadURI) {
       try {
         const fileExtension = path.extname(downloadURI);
         const s3Key = `${connectionId}/${documentId}${fileExtension}`;
 
-        s3Url = await processAndUploadFile(downloadURI, s3Key);
+        newStorageKey = await processAndUploadFile(downloadURI, s3Key);
       } catch (error) {
         console.error("Failed to process file:", error);
         return NextResponse.json(
           { error: "Failed to process file" },
           { status: 500 }
+        );
+      }
+    }
+
+    // Delete existing file from S3 if it exists
+    if (document.storageKey) {
+      try {
+        await deleteFileFromS3(document.storageKey);
+        console.log(
+          `Successfully deleted file with key ${document.storageKey} from S3`
+        );
+      } catch (s3Error) {
+        console.error(
+          `Failed to delete file from S3: ${document.storageKey}`,
+          s3Error
         );
       }
     }
@@ -82,7 +94,7 @@ export async function POST(request: Request) {
         lastSyncedAt: new Date().toISOString(),
         isDownloading: false,
         ...(text ? { content: text }: {}),
-        ...(downloadURI && s3Url ? { storageKey: s3Url }: {}),
+        ...(downloadURI && newStorageKey ? { storageKey: newStorageKey }: {}),
       } }
     );
 

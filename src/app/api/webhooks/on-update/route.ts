@@ -59,11 +59,11 @@ export async function POST(request: Request) {
     });
 
     if (shouldDownload) {
-        await triggerDownloadDocumentFlow(
-          request.headers.get("x-integration-app-token")!,
-          connectionId,
-          fields.id
-        );
+      await triggerDownloadDocumentFlow(
+        request.headers.get("x-integration-app-token")!,
+        connectionId,
+        fields.id
+      );
     }
 
     return NextResponse.json({ message: "ok" });
