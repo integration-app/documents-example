@@ -9,7 +9,6 @@ import { deleteFileFromS3 } from "@/lib/s3-utils";
  * It is triggered for each child of the deleted document.
  */
 const WebhookPayloadSchema = z.object({
-  source: z.string(),
   id: z.string(),
 });
 
