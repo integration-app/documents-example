@@ -3,7 +3,7 @@ import connectDB from "@/lib/mongodb";
 import { deleteFileFromS3, processAndUploadFile } from "@/lib/s3-utils";
 import { DocumentModel } from "@/models/document";
 import { NextResponse } from "next/server";
-import path from "path";
+import { v4 as uuidv4 } from 'uuid';  
 
 const onDownloadCompleteWebhookPayloadSchema = z.object({
   downloadURI: z.string().url().optional(),
@@ -48,6 +48,8 @@ export async function POST(request: Request) {
       id: documentId,
     });
 
+    console.log("document to update", document);
+
     if (!document) {
       console.error(`Document with id ${documentId} not found`);
       return NextResponse.json(
@@ -56,26 +58,30 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!downloadURI) {
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
+
+
     let newStorageKey: string | undefined;
 
-    if (downloadURI) {
-      try {
-        const fileExtension = path.extname(downloadURI);
-        const s3Key = `${connectionId}/${documentId}${fileExtension}`;
-
-        newStorageKey = await processAndUploadFile(downloadURI, s3Key);
-      } catch (error) {
-        console.error("Failed to process file:", error);
-        return NextResponse.json(
-          { error: "Failed to process file" },
-          { status: 500 }
-        );
-      }
+    try {
+      newStorageKey = await processAndUploadFile(
+        downloadURI,
+        `${connectionId}/${documentId}/${uuidv4()}/${document.title}`
+      );
+    } catch (error) {
+      console.error("Failed to process file:", error);
+      return NextResponse.json(
+        { error: "Failed to process file" },
+        { status: 500 }
+      );
     }
 
     // Delete existing file from S3 if it exists
     if (document.storageKey) {
       try {
+        console.log(`Deleting file with key ${document.storageKey} from S3`);
         await deleteFileFromS3(document.storageKey);
         console.log(
           `Successfully deleted file with key ${document.storageKey} from S3`
@@ -90,12 +96,16 @@ export async function POST(request: Request) {
 
     await DocumentModel.updateOne(
       { connectionId, id: documentId },
-      { $set:{
-        lastSyncedAt: new Date().toISOString(),
-        isDownloading: false,
-        ...(text ? { content: text }: {}),
-        ...(downloadURI && newStorageKey ? { storageKey: newStorageKey }: {}),
-      } }
+      {
+        $set: {
+          lastSyncedAt: new Date().toISOString(),
+          isDownloading: false,
+          ...(text ? { content: text } : {}),
+          ...(downloadURI && newStorageKey
+            ? { storageKey: newStorageKey }
+            : {}),
+        },
+      }
     );
 
     return NextResponse.json({ success: true }, { status: 200 });

@@ -30,7 +30,7 @@ export async function processAndUploadFile(downloadURI: string, s3Key: string) {
  * Downloads a file from a given URI and uploads it to S3
  * @param downloadURI - The URI to download the file from
  * @param s3Key - The key (path) where the file will be stored xin S3
- * @returns Promise<string> - The S3 URL where the fxile was uploaded
+ * @returns Promise<string> - The S3 URL where the file was uploaded
  */
 export async function uploadToS3(
   key: string,
@@ -57,8 +57,7 @@ export async function getS3ObjectStream(s3Key: string) {
     Key: s3Key,
   });
 
-  const response = await s3Client.send(command);
-  return response.Body;
+  return await s3Client.send(command);
 }
 
 /**

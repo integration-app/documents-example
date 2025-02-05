@@ -21,10 +21,14 @@ export async function GET(
       return new NextResponse("Storage key is required", { status: 400 });
     }
 
-    await connectDB();
     const documentId = (await params).id;
 
-    const document = await DocumentModel.findOne({ storageKey, id: documentId });
+    await connectDB();
+
+    const document = await DocumentModel.findOne({
+      storageKey,
+      id: documentId,
+    });
 
     console.log("Document:", document);
 
@@ -32,28 +36,33 @@ export async function GET(
       return new NextResponse("Document not found", { status: 404 });
     }
 
-    console.log("Document:", document);
-
     if (!document.storageKey) {
-      return new NextResponse("No download 3URL available", { status: 404 });
+      return new NextResponse("No download URL available", { status: 404 });
     }
 
-    const s3Stream = await getS3ObjectStream(document.storageKey);
+    const { Body, ContentType, ContentLength } = await getS3ObjectStream(
+      document.storageKey
+    );
 
-    if (!s3Stream) {
+    if (!Body) {
       return new NextResponse("Failed to get document stream", { status: 500 });
     }
 
-    // Create headers for the response
     const responseHeaders = new Headers();
-    responseHeaders.set("Content-Type", "application/octet-stream");
+
+    responseHeaders.set(
+      "Content-Type",
+      ContentType || "application/octet-stream"
+    );
+    if (ContentLength !== undefined) {
+      responseHeaders.set("Content-Length", String(ContentLength));
+    }
     responseHeaders.set(
       "Content-Disposition",
       `attachment; filename="${document.title}"`
     );
 
-    // Return the stream with appropriate headers
-    return new NextResponse(s3Stream as ReadableStream, {
+    return new NextResponse(Body as ReadableStream, {
       headers: responseHeaders,
     });
   } catch (error) {
