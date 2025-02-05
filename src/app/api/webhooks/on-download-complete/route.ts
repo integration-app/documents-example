@@ -62,21 +62,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
-    // Delete existing file from S3 if it exists
-    if (document.storageKey) {
-      try {
-        console.log(`Deleting file with key ${document.storageKey} from S3`);
-        await deleteFileFromS3(document.storageKey);
-        console.log(
-          `Successfully deleted file with key ${document.storageKey} from S3`
-        );
-      } catch (s3Error) {
-        console.error(
-          `Failed to delete file from S3: ${document.storageKey}`,
-          s3Error
-        );
-      }
-    }
 
     let newStorageKey: string | undefined;
 
@@ -91,6 +76,22 @@ export async function POST(request: Request) {
         { error: "Failed to process file" },
         { status: 500 }
       );
+    }
+
+    // Delete existing file from S3 if it exists
+    if (document.storageKey) {
+      try {
+        console.log(`Deleting file with key ${document.storageKey} from S3`);
+        await deleteFileFromS3(document.storageKey);
+        console.log(
+          `Successfully deleted file with key ${document.storageKey} from S3`
+        );
+      } catch (s3Error) {
+        console.error(
+          `Failed to delete file from S3: ${document.storageKey}`,
+          s3Error
+        );
+      }
     }
 
     await DocumentModel.updateOne(
