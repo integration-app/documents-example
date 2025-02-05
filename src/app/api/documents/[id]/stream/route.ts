@@ -54,7 +54,9 @@ export async function GET(
       "Content-Type",
       ContentType || "application/octet-stream"
     );
-    responseHeaders.set("Content-Length", String(ContentLength!));
+    if (ContentLength !== undefined) {
+      responseHeaders.set("Content-Length", String(ContentLength));
+    }
     responseHeaders.set(
       "Content-Disposition",
       `attachment; filename="${document.title}"`
