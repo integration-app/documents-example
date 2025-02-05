@@ -55,7 +55,7 @@ export async function POST(request: Request) {
       },
       { concurrency: 5 }
     );
-
+    console.log(`Ids of documents to delete:`, documentIds);
     await DocumentModel.deleteMany({ id: { $in: documentIds } });
 
     console.log(

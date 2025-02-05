@@ -9,7 +9,7 @@ export async function getAllDocsInTree(
   rootDocumentId: string
 ): Promise<string[]> {
   // Get the root document
-  const rootDoc = await DocumentModel.findById(rootDocumentId);
+  const rootDoc = await DocumentModel.findOne({ id: rootDocumentId });
   if (!rootDoc) {
     return [];
   }
