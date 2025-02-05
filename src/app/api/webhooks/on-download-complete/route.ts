@@ -3,6 +3,7 @@ import connectDB from "@/lib/mongodb";
 import { deleteFileFromS3, processAndUploadFile } from "@/lib/s3-utils";
 import { DocumentModel } from "@/models/document";
 import { NextResponse } from "next/server";
+import { v4 as uuidv4 } from 'uuid';  
 
 const onDownloadCompleteWebhookPayloadSchema = z.object({
   downloadURI: z.string().url().optional(),
@@ -82,7 +83,7 @@ export async function POST(request: Request) {
     try {
       newStorageKey = await processAndUploadFile(
         downloadURI,
-        `${connectionId}/${documentId}`
+        `${connectionId}/${documentId}/${uuidv4()}/${document.title}`
       );
     } catch (error) {
       console.error("Failed to process file:", error);
