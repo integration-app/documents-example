@@ -64,8 +64,8 @@ async function syncDocuments(connectionId: string, request: NextRequest) {
     const token = await generateIntegrationToken(auth);
     const integrationApp = new IntegrationAppClient({ token });
 
-    let cursor: string | null = null;
-    
+    let cursor: string | undefined = undefined;
+
     do {
       const result = await integrationApp
         .connection(connectionId)
