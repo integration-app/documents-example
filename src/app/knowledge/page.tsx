@@ -84,9 +84,12 @@ export default function KnowledgePage() {
 
   const downloadFileToDisk = async (docId: string, storageKey: string) => {
     try {
-      const response = await fetch(`/api/documents/${docId}/stream?storageKey=${storageKey}`, {
-        headers: getAuthHeaders(),
-      });
+      const response = await fetch(
+        `/api/documents/${docId}/stream?storageKey=${storageKey}`,
+        {
+          headers: getAuthHeaders(),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to download document");
@@ -133,7 +136,7 @@ export default function KnowledgePage() {
             <span>Saving to Knowledge Base</span>
           </Badge>
         )}
-        
+
         {!doc.isDownloading && (
           <>
             {doc.content && (
@@ -149,7 +152,9 @@ export default function KnowledgePage() {
             {doc.storageKey && (
               <Button
                 size="sm"
-                onClick={() => downloadFileToDisk(doc.id as string, doc.storageKey!)}
+                onClick={() =>
+                  downloadFileToDisk(doc.id as string, doc.storageKey!)
+                }
                 className="h-8 w-8 p-0"
                 title="Download document"
               >
@@ -346,10 +351,12 @@ export default function KnowledgePage() {
                             {doc.id}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500">
-                          Updated{" "}
-                          {format(new Date(doc.updatedAt), "MMM d, yyyy")}
-                        </p>
+                        {doc.updatedAt && (
+                          <p className="text-xs text-gray-500">
+                            Updated{" "}
+                            {format(new Date(doc.updatedAt), "MMM d, yyyy")}
+                          </p>
+                        )}
                       </div>
                       <Icons.chevronRight className="h-4 w-4 text-gray-400" />
                     </div>
@@ -370,10 +377,12 @@ export default function KnowledgePage() {
                             {doc.id}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-500">
-                          Updated{" "}
-                          {format(new Date(doc.updatedAt), "MMM d, yyyy")}
-                        </p>
+                        {doc.updatedAt && (
+                          <p className="text-xs text-gray-500">
+                            Updated{" "}
+                            {format(new Date(doc.updatedAt), "MMM d, yyyy")}
+                          </p>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <DocumentActions doc={doc} />
