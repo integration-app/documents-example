@@ -48,13 +48,13 @@ export async function POST(request: Request) {
 
     const shouldDownload = isFile && doc.isSubscribed;
 
-    // TODO: Spread fields once we fix issue in drive connector
     await doc.updateOne({
       $set: {
         title: fields.title,
         updatedAt: fields.updatedAt,
         resourceURI: fields.resourceURI,
         isDownloading: shouldDownload,
+        parentId: fields.parentId,
       },
     });
 
