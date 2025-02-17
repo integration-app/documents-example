@@ -236,11 +236,15 @@ export default function KnowledgePage() {
     const integration = integrationGroups.find(
       (group) => group.integrationId === integrationId
     );
-    if (!integration) return [];
+    if (!integration) {
+      return [];
+    }
 
     // Find the connection ID for this integration
-    const {connectionId} = integration;
-    if (!connectionId || !documentMap[connectionId]) return [];
+    const { connectionId } = integration;
+    if (!connectionId || !documentMap[connectionId]) {
+      return [];
+    }
 
     // If no folder is selected, return root documents
     if (currentFolderId === null) {
