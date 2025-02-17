@@ -239,7 +239,7 @@ export default function KnowledgePage() {
     if (!integration) return [];
 
     // Find the connection ID for this integration
-    const connectionId = integration.connectionId;
+    const {connectionId} = integration;
     if (!connectionId || !documentMap[connectionId]) return [];
 
     // If no folder is selected, return root documents
