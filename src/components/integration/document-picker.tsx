@@ -112,6 +112,14 @@ export function DocumentPicker({
 
         const data = await response.json();
 
+        if (data.status === "in_progress") {
+          /*
+           * TODO: Ideally, we only want to fetch only new documents and append that to an array of documents
+           * We'd need to update the knowledge model to include a lastSyncedAt field so
+           * we can fetch only documents that were created after the lastSyncedAt date
+           */
+          fetchDocuments();
+        }
         if (data.status === "completed") {
           clearInterval(pollInterval);
           setSyncing(false);
