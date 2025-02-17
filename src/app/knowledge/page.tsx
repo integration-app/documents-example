@@ -46,7 +46,7 @@ interface DocumentMap {
 export default function KnowledgePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [integrationDocuments, setIntegrationDocuments] = useState<
+  const [integrationGroups, setIntegrationGroups] = useState<
     IntegrationGroup[]
   >([]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
@@ -212,19 +212,13 @@ export default function KnowledgePage() {
         throw new Error("Failed to fetch documents");
       }
 
-      const integrationGroups: IntegrationGroup[] = await response.json();
-      const groupedDocs = groupDocuments(integrationGroups);
+      const groups: IntegrationGroup[] = await response.json();
+      const groupedDocs = groupDocuments(groups);
+
+      console.log({ groupedDocs, groups });
 
       setDocumentMap(groupedDocs);
-      
-      setIntegrationDocuments(
-        integrationGroups.map((group) => ({
-          integrationId: group.integrationId,
-          integrationName: group.integrationName,
-          integrationLogo: group.integrationLogo,
-          documents: group.documents,
-        }))
-      );
+      setIntegrationGroups(groups);
     } catch (error) {
       console.error("Error fetching documents:", error);
       if (showLoadingState) {
@@ -239,13 +233,13 @@ export default function KnowledgePage() {
 
   const getCurrentDocuments = (integrationId: string): Document[] => {
     // Find the integration group that matches this ID
-    const integration = integrationDocuments.find(
+    const integration = integrationGroups.find(
       (group) => group.integrationId === integrationId
     );
     if (!integration) return [];
 
     // Find the connection ID for this integration
-    const connectionId = integration.documents[0]?.connectionId;
+    const connectionId = integration.connectionId;
     if (!connectionId || !documentMap[connectionId]) return [];
 
     // If no folder is selected, return root documents
@@ -316,7 +310,7 @@ export default function KnowledgePage() {
     );
   }
 
-  if (integrationDocuments.length === 0) {
+  if (integrationGroups.length === 0) {
     return (
       <div className="container mx-auto py-8">
         <h1 className="text-2xl font-bold mb-6">Knowledge Base</h1>
@@ -333,7 +327,7 @@ export default function KnowledgePage() {
       {renderBreadcrumbs()}
 
       <div className="space-y-8">
-        {integrationDocuments.map((integration) => {
+        {integrationGroups.map((integration) => {
           const currentDocs = getCurrentDocuments(integration.integrationId);
           const folders = currentDocs.filter((doc) => doc.canHaveChildren);
           const files = currentDocs.filter((doc) => !doc.canHaveChildren);
