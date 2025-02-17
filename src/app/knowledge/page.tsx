@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { getAuthHeaders } from "@/app/auth-provider";
@@ -43,6 +43,38 @@ interface DocumentMap {
   };
 }
 
+const groupDocuments = (integrationGroups: IntegrationGroup[]) => {
+  const documentMap: DocumentMap = {};
+
+  integrationGroups.forEach((group) => {
+    // Create a lookup of all documents in this group
+    const documentLookup = group.documents.reduce((acc, doc) => {
+      acc[doc.id] = doc;
+      return acc;
+    }, {} as { [key: string]: Document });
+
+    // Initialize the connection's document map
+    documentMap[group.connectionId] = {
+      root: [],
+    };
+
+    // Group documents by parent
+    group.documents.forEach((doc) => {
+      if (doc.parentId && documentLookup[doc.parentId]) {
+        if (!documentMap[group.connectionId][doc.parentId]) {
+          documentMap[group.connectionId][doc.parentId] = [];
+        }
+        documentMap[group.connectionId][doc.parentId].push(doc);
+      } else {
+        // If no valid parentId, add to root
+        documentMap[group.connectionId].root.push(doc);
+      }
+    });
+  });
+
+  return documentMap;
+};
+
 export default function KnowledgePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,10 +86,15 @@ export default function KnowledgePage() {
     Array<{ id: string; title: string }>
   >([]);
   const [viewingDocument, setViewingDocument] = useState<Document | null>(null);
-  const [documentMap, setDocumentMap] = useState<DocumentMap>({});
 
   // Add polling interval ref
   const pollingInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // Add memoized documentMap
+  const documentMap = useMemo(
+    () => groupDocuments(integrationGroups),
+    [integrationGroups]
+  );
 
   // Start polling when component mounts
   useEffect(() => {
@@ -166,38 +203,6 @@ export default function KnowledgePage() {
     );
   };
 
-  const groupDocuments = (integrationGroups: IntegrationGroup[]) => {
-    const documentMap: DocumentMap = {};
-
-    integrationGroups.forEach((group) => {
-      // Create a lookup of all documents in this group
-      const documentLookup = group.documents.reduce((acc, doc) => {
-        acc[doc.id] = doc;
-        return acc;
-      }, {} as { [key: string]: Document });
-
-      // Initialize the connection's document map
-      documentMap[group.connectionId] = {
-        root: [],
-      };
-
-      // Group documents by parent
-      group.documents.forEach((doc) => {
-        if (doc.parentId && documentLookup[doc.parentId]) {
-          if (!documentMap[group.connectionId][doc.parentId]) {
-            documentMap[group.connectionId][doc.parentId] = [];
-          }
-          documentMap[group.connectionId][doc.parentId].push(doc);
-        } else {
-          // If no valid parentId, add to root
-          documentMap[group.connectionId].root.push(doc);
-        }
-      });
-    });
-
-    return documentMap;
-  };
-
   const fetchSubscribedDocuments = async (showLoadingState = false) => {
     try {
       if (showLoadingState) {
@@ -213,11 +218,9 @@ export default function KnowledgePage() {
       }
 
       const groups: IntegrationGroup[] = await response.json();
-      const groupedDocs = groupDocuments(groups);
 
-      console.log({ groupedDocs, groups });
+      // Remove setDocumentMap call since we now compute it
 
-      setDocumentMap(groupedDocs);
       setIntegrationGroups(groups);
     } catch (error) {
       console.error("Error fetching documents:", error);
