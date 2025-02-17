@@ -36,13 +36,14 @@ interface IntegrationDocuments {
   documents: Document[];
 }
 
-interface GroupedDocuments {
-  [connectionId: string]: {
-    integrationId: string;
-    integrationName: string;
-    integrationLogo?: string;
-    documents: Document[];
+interface DocumentMap {
+  [integrationId: string]: {
+    [parentId: string]: Document[];
   };
+}
+
+interface DocumentLookup {
+  [documentId: string]: Document;
 }
 
 export default function KnowledgePage() {
@@ -56,6 +57,7 @@ export default function KnowledgePage() {
     Array<{ id: string; title: string }>
   >([]);
   const [viewingDocument, setViewingDocument] = useState<Document | null>(null);
+  const [documentMap, setDocumentMap] = useState<DocumentMap>({});
 
   // Add polling interval ref
   const pollingInterval = useRef<NodeJS.Timeout | null>(null);
@@ -167,6 +169,41 @@ export default function KnowledgePage() {
     );
   };
 
+  const groupDocuments = (documents: Document[]) => {
+    // First create a lookup of all documents by ID
+    const documentLookup: DocumentLookup = documents.reduce((acc, doc) => {
+      acc[doc.id] = doc;
+      return acc;
+    }, {} as DocumentLookup);
+
+    // Group documents by integration and parent ID
+    const grouped = documents.reduce((acc: DocumentMap, doc) => {
+      const integrationId = doc.integrationId;
+
+      // Initialize integration object if it doesn't exist
+      if (!acc[integrationId]) {
+        acc[integrationId] = {
+          root: [],
+        };
+      }
+
+      // If document has a parentId and that parent exists, add to that group
+      if (doc.parentId && documentLookup[doc.parentId]) {
+        if (!acc[integrationId][doc.parentId]) {
+          acc[integrationId][doc.parentId] = [];
+        }
+        acc[integrationId][doc.parentId].push(doc);
+      } else {
+        // If no valid parentId, add to root
+        acc[integrationId].root.push(doc);
+      }
+
+      return acc;
+    }, {});
+
+    return grouped;
+  };
+
   const fetchSubscribedDocuments = async (showLoadingState = false) => {
     try {
       if (showLoadingState) {
@@ -182,33 +219,24 @@ export default function KnowledgePage() {
       }
 
       const documents = await response.json();
+      const groupedDocs = groupDocuments(documents);
 
-      // Group documents by connection and preserve integration info
-      const grouped = documents.reduce(
-        (
-          acc: GroupedDocuments,
-          doc: Document & {
-            connectionId: string;
-            integrationId: string;
-            integrationName: string;
-            integrationLogo?: string;
-          }
-        ) => {
-          if (!acc[doc.connectionId]) {
-            acc[doc.connectionId] = {
-              integrationId: doc.integrationId,
-              integrationName: doc.integrationName,
-              integrationLogo: doc.integrationLogo,
-              documents: [],
-            };
-          }
-          acc[doc.connectionId].documents.push(doc);
-          return acc;
-        },
-        {}
-      );
+      setDocumentMap(groupedDocs);
 
-      setIntegrationDocuments(Object.values(grouped));
+      // Extract integration info for rendering
+      const integrationInfo = documents.reduce((acc: any, doc: Document) => {
+        if (!acc[doc.integrationId]) {
+          acc[doc.integrationId] = {
+            integrationId: doc.integrationId,
+            integrationName: doc.integrationName,
+            integrationLogo: doc.integrationLogo,
+          };
+        }
+        acc[doc.integrationId].documents.push(doc);
+        return acc;
+      }, {});
+
+      setIntegrationDocuments(Object.values(integrationInfo));
     } catch (error) {
       console.error("Error fetching documents:", error);
       if (showLoadingState) {
@@ -219,6 +247,18 @@ export default function KnowledgePage() {
         setLoading(false);
       }
     }
+  };
+
+  const getCurrentDocuments = (integrationId: string): Document[] => {
+    if (!documentMap[integrationId]) return [];
+
+    // If no folder is selected, return root documents
+    if (currentFolderId === null) {
+      return documentMap[integrationId].root || [];
+    }
+
+    // Return documents for the current folder
+    return documentMap[integrationId][currentFolderId] || [];
   };
 
   // Update initial fetch to show loading state
@@ -298,25 +338,14 @@ export default function KnowledgePage() {
 
       <div className="space-y-8">
         {integrationDocuments.map((integration) => {
-          const currentDocs = integration.documents.filter((doc) => {
-            if (currentFolderId === null) {
-              return !doc.parentId;
-            }
-            return doc.parentId === currentFolderId;
-          });
-
+          const currentDocs = getCurrentDocuments(integration.integrationId);
           const folders = currentDocs.filter((doc) => doc.canHaveChildren);
           const files = currentDocs.filter((doc) => !doc.canHaveChildren);
 
-          console.log({ files, folders });
-
           if (currentDocs.length === 0) return null;
 
-          // Use connectionId from first document if integrationId is not available
-          const key = integration.documents[0]?.connectionId;
-
           return (
-            <Card key={key}>
+            <Card key={integration.integrationId}>
               <CardHeader>
                 <div className="flex items-center gap-3">
                   {integration.integrationLogo ? (
