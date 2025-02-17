@@ -371,18 +371,25 @@ export function DocumentPicker({
   };
 
   const renderContent = () => {
-    if (loading || syncing) {
+    if (loading && documents.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center py-12">
           <Icons.spinner className="h-8 w-8 animate-spin mb-4" />
-          <p className="text-sm text-gray-500">
-            {syncing ? "Syncing documents..." : "Loading documents..."}
-          </p>
+          <p className="text-sm text-gray-500">Loading documents...</p>
         </div>
       );
     }
 
-    if (error) {
+    if (syncing && documents.length === 0) {
+      return (
+        <div className="flex flex-col items-center justify-center py-12">
+          <Icons.spinner className="h-8 w-8 animate-spin mb-4" />
+          <p className="text-sm text-gray-500">Syncing documents...</p>
+        </div>
+      );
+    }
+
+    if (error && documents.length === 0) {
       return (
         <div className="flex flex-col items-center justify-center py-12">
           <div className="mb-4 p-4 text-red-500 bg-red-50 rounded-md">
@@ -467,19 +474,27 @@ export function DocumentPicker({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <div className="flex items-center gap-3 mb-4">
-            {integration.logoUri ? (
-              <img
-                src={integration.logoUri}
-                alt={`${integration.name} logo`}
-                className="w-8 h-8 rounded-lg"
-              />
-            ) : (
-              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                {integration.name[0]}
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              {integration.logoUri ? (
+                <img
+                  src={integration.logoUri}
+                  alt={`${integration.name} logo`}
+                  className="w-8 h-8 rounded-lg"
+                />
+              ) : (
+                <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                  {integration.name[0]}
+                </div>
+              )}
+              <DialogTitle>{integration.name}</DialogTitle>
+            </div>
+            {(loading || syncing) && documents.length > 0 && (
+              <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                <Icons.spinner className="h-3 w-3 animate-spin" />
+                <span>{syncing ? "Syncing" : "Loading"}</span>
               </div>
             )}
-            <DialogTitle>{integration.name}</DialogTitle>
           </div>
 
           <div className="flex justify-between items-center gap-4">
