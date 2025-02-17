@@ -29,28 +29,25 @@ const Icons = {
   refresh: RefreshCwIcon,
 } as const;
 
-interface IntegrationDocuments {
+interface IntegrationGroup {
+  connectionId: string;
   integrationId: string;
   integrationName: string;
-  integrationLogo?: string;
+  integrationLogo: string;
   documents: Document[];
 }
 
 interface DocumentMap {
-  [integrationId: string]: {
+  [connectionId: string]: {
     [parentId: string]: Document[];
   };
-}
-
-interface DocumentLookup {
-  [documentId: string]: Document;
 }
 
 export default function KnowledgePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [integrationDocuments, setIntegrationDocuments] = useState<
-    IntegrationDocuments[]
+    IntegrationGroup[]
   >([]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [breadcrumbs, setBreadcrumbs] = useState<
@@ -169,39 +166,36 @@ export default function KnowledgePage() {
     );
   };
 
-  const groupDocuments = (documents: Document[]) => {
-    // First create a lookup of all documents by ID
-    const documentLookup: DocumentLookup = documents.reduce((acc, doc) => {
-      acc[doc.id] = doc;
-      return acc;
-    }, {} as DocumentLookup);
+  const groupDocuments = (integrationGroups: IntegrationGroup[]) => {
+    const documentMap: DocumentMap = {};
 
-    // Group documents by integration and parent ID
-    const grouped = documents.reduce((acc: DocumentMap, doc) => {
-      const integrationId = doc.integrationId;
+    integrationGroups.forEach((group) => {
+      // Create a lookup of all documents in this group
+      const documentLookup = group.documents.reduce((acc, doc) => {
+        acc[doc.id] = doc;
+        return acc;
+      }, {} as { [key: string]: Document });
 
-      // Initialize integration object if it doesn't exist
-      if (!acc[integrationId]) {
-        acc[integrationId] = {
-          root: [],
-        };
-      }
+      // Initialize the connection's document map
+      documentMap[group.connectionId] = {
+        root: [],
+      };
 
-      // If document has a parentId and that parent exists, add to that group
-      if (doc.parentId && documentLookup[doc.parentId]) {
-        if (!acc[integrationId][doc.parentId]) {
-          acc[integrationId][doc.parentId] = [];
+      // Group documents by parent
+      group.documents.forEach((doc) => {
+        if (doc.parentId && documentLookup[doc.parentId]) {
+          if (!documentMap[group.connectionId][doc.parentId]) {
+            documentMap[group.connectionId][doc.parentId] = [];
+          }
+          documentMap[group.connectionId][doc.parentId].push(doc);
+        } else {
+          // If no valid parentId, add to root
+          documentMap[group.connectionId].root.push(doc);
         }
-        acc[integrationId][doc.parentId].push(doc);
-      } else {
-        // If no valid parentId, add to root
-        acc[integrationId].root.push(doc);
-      }
+      });
+    });
 
-      return acc;
-    }, {});
-
-    return grouped;
+    return documentMap;
   };
 
   const fetchSubscribedDocuments = async (showLoadingState = false) => {
@@ -218,25 +212,19 @@ export default function KnowledgePage() {
         throw new Error("Failed to fetch documents");
       }
 
-      const documents = await response.json();
-      const groupedDocs = groupDocuments(documents);
+      const integrationGroups: IntegrationGroup[] = await response.json();
+      const groupedDocs = groupDocuments(integrationGroups);
 
       setDocumentMap(groupedDocs);
-
-      // Extract integration info for rendering
-      const integrationInfo = documents.reduce((acc: any, doc: Document) => {
-        if (!acc[doc.integrationId]) {
-          acc[doc.integrationId] = {
-            integrationId: doc.integrationId,
-            integrationName: doc.integrationName,
-            integrationLogo: doc.integrationLogo,
-          };
-        }
-        acc[doc.integrationId].documents.push(doc);
-        return acc;
-      }, {});
-
-      setIntegrationDocuments(Object.values(integrationInfo));
+      
+      setIntegrationDocuments(
+        integrationGroups.map((group) => ({
+          integrationId: group.integrationId,
+          integrationName: group.integrationName,
+          integrationLogo: group.integrationLogo,
+          documents: group.documents,
+        }))
+      );
     } catch (error) {
       console.error("Error fetching documents:", error);
       if (showLoadingState) {
@@ -250,15 +238,23 @@ export default function KnowledgePage() {
   };
 
   const getCurrentDocuments = (integrationId: string): Document[] => {
-    if (!documentMap[integrationId]) return [];
+    // Find the integration group that matches this ID
+    const integration = integrationDocuments.find(
+      (group) => group.integrationId === integrationId
+    );
+    if (!integration) return [];
+
+    // Find the connection ID for this integration
+    const connectionId = integration.documents[0]?.connectionId;
+    if (!connectionId || !documentMap[connectionId]) return [];
 
     // If no folder is selected, return root documents
     if (currentFolderId === null) {
-      return documentMap[integrationId].root || [];
+      return documentMap[connectionId].root || [];
     }
 
     // Return documents for the current folder
-    return documentMap[integrationId][currentFolderId] || [];
+    return documentMap[connectionId][currentFolderId] || [];
   };
 
   // Update initial fetch to show loading state
