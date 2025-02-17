@@ -45,6 +45,144 @@ interface BreadcrumbItem {
   title: string;
 }
 
+interface BreadcrumbsProps {
+  items: BreadcrumbItem[];
+  onNavigate: (index: number) => void;
+}
+
+function Breadcrumbs({ items, onNavigate }: BreadcrumbsProps) {
+  if (items.length === 0) return null;
+
+  return (
+    <div className="flex items-center flex-wrap gap-2 px-4 py-2 text-sm text-gray-500 bg-gray-50 rounded-md">
+      <button
+        onClick={() => onNavigate(-1)}
+        className="hover:text-gray-900 transition-colors"
+      >
+        Root
+      </button>
+      {items.map((crumb, index) => (
+        <div key={crumb.id} className="flex items-center gap-2">
+          <Icons.chevronRight className="h-4 w-4 text-gray-400" />
+          <button
+            onClick={() => onNavigate(index)}
+            className="hover:text-gray-900 transition-colors"
+          >
+            {crumb.title}
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+interface DocumentListProps {
+  folders: Document[];
+  files: Document[];
+  onFolderClick: (id: string, title: string) => void;
+  onSubscribe: (document: Document) => void;
+  isSubscribing: boolean;
+}
+
+function DocumentList({
+  folders,
+  files,
+  onFolderClick,
+  onSubscribe,
+}: DocumentListProps) {
+  if (folders.length === 0 && files.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-12">
+        <p className="text-gray-500">This folder is empty</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      {folders.map((folder) => (
+        <div
+          key={folder.id}
+          className="flex items-center gap-3 py-2 px-4 hover:bg-gray-50 cursor-pointer"
+          onClick={() => onFolderClick(folder.id, folder.title)}
+        >
+          <Checkbox
+            checked={folder.isSubscribed}
+            onCheckedChange={() => onSubscribe(folder)}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <Icons.folder className="h-4 w-4 flex-shrink-0 text-gray-400" />
+            <span
+              className={cn("truncate", {
+                "text-blue-600": folder.isSubscribed,
+              })}
+            >
+              {folder.title}
+            </span>
+          </div>
+          <Icons.chevronRight className="h-4 w-4 text-gray-400" />
+        </div>
+      ))}
+
+      {files.map((document) => (
+        <div
+          key={document.id}
+          className="flex items-center gap-3 py-2 px-4 hover:bg-gray-50 cursor-pointer"
+          onClick={() => onSubscribe(document)}
+        >
+          <Checkbox
+            checked={document.isSubscribed}
+            onCheckedChange={() => onSubscribe(document)}
+            onClick={(e) => e.stopPropagation()}
+          />
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <Icons.file className="h-4 w-4 flex-shrink-0 text-gray-400" />
+            <span
+              className={cn("truncate", {
+                "text-blue-600": document.isSubscribed,
+              })}
+            >
+              {document.title}
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+interface LoadingStateProps {
+  message: string;
+}
+
+function LoadingState({ message }: LoadingStateProps) {
+  return (
+    <div className="flex flex-col items-center justify-center py-12">
+      <Icons.spinner className="h-8 w-8 animate-spin mb-4" />
+      <p className="text-sm text-gray-500">{message}</p>
+    </div>
+  );
+}
+
+interface ErrorStateProps {
+  message: string;
+  onRetry: () => void;
+}
+
+function ErrorState({ message, onRetry }: ErrorStateProps) {
+  return (
+    <div className="flex flex-col items-center justify-center py-12">
+      <div className="mb-4 p-4 text-red-500 bg-red-50 rounded-md">
+        {message}
+      </div>
+      <Button onClick={onRetry} variant="outline">
+        Try Again
+      </Button>
+    </div>
+  );
+}
+
 export function DocumentPicker({
   integration,
   onComplete,
@@ -277,32 +415,6 @@ export function DocumentPicker({
     setBreadcrumbs(newBreadcrumbs);
   };
 
-  const renderBreadcrumbs = () => {
-    if (breadcrumbs.length === 0) return null;
-
-    return (
-      <div className="flex items-center flex-wrap gap-2 px-4 py-2 text-sm text-gray-500 bg-gray-50 rounded-md">
-        <button
-          onClick={() => navigateToBreadcrumb(-1)}
-          className="hover:text-gray-900 transition-colors"
-        >
-          Root
-        </button>
-        {breadcrumbs.map((crumb, index) => (
-          <div key={crumb.id} className="flex items-center gap-2">
-            <Icons.chevronRight className="h-4 w-4 text-gray-400" />
-            <button
-              onClick={() => navigateToBreadcrumb(index)}
-              className="hover:text-gray-900 transition-colors"
-            >
-              {crumb.title}
-            </button>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
   /**
    * Once a document is toggled, we need to update it's state and all it's children
    * in the local state and then persist the state to the backend.
@@ -379,101 +491,20 @@ export function DocumentPicker({
   };
 
   const renderContent = () => {
-    if (loading && documents.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center py-12">
-          <Icons.spinner className="h-8 w-8 animate-spin mb-4" />
-          <p className="text-sm text-gray-500">Loading documents...</p>
-        </div>
-      );
-    }
-
-    if (syncing && documents.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center py-12">
-          <Icons.spinner className="h-8 w-8 animate-spin mb-4" />
-          <p className="text-sm text-gray-500">Syncing documents...</p>
-        </div>
-      );
-    }
-
-    if (error && documents.length === 0) {
-      return (
-        <div className="flex flex-col items-center justify-center py-12">
-          <div className="mb-4 p-4 text-red-500 bg-red-50 rounded-md">
-            {error}
-          </div>
-          <Button onClick={startSync} variant="outline">
-            Try Again
-          </Button>
-        </div>
-      );
-    }
-
-    const hasContent = currentFolders.length > 0 || currentFiles.length > 0;
+    if (loading) return <LoadingState message="Loading documents..." />;
+    if (syncing) return <LoadingState message="Syncing documents..." />;
+    if (error) return <ErrorState message={error} onRetry={startSync} />;
 
     return (
       <div className="space-y-4">
-        {renderBreadcrumbs()}
-
-        {!hasContent ? (
-          <div className="flex flex-col items-center justify-center py-12">
-            <p className="text-gray-500">This folder is empty</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {currentFolders.map((folder) => (
-              <div
-                key={folder.id}
-                className="flex items-center gap-3 py-2 px-4 hover:bg-gray-50 cursor-pointer"
-                onClick={() => navigateToFolder(folder.id, folder.title)}
-              >
-                <Checkbox
-                  checked={folder.isSubscribed}
-                  onCheckedChange={() => {
-                    subscribeDocument(folder);
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <Icons.folder className="h-4 w-4 flex-shrink-0 text-gray-400" />
-                  <span
-                    className={cn("truncate", {
-                      "text-blue-600": folder.isSubscribed,
-                    })}
-                  >
-                    {folder.title}
-                  </span>
-                </div>
-                <Icons.chevronRight className="h-4 w-4 text-gray-400" />
-              </div>
-            ))}
-
-            {currentFiles.map((document) => (
-              <div
-                key={document.id}
-                className="flex items-center gap-3 py-2 px-4 hover:bg-gray-50 cursor-pointer"
-                onClick={() => subscribeDocument(document)}
-              >
-                <Checkbox
-                  checked={document.isSubscribed}
-                  onCheckedChange={() => subscribeDocument(document)}
-                  onClick={(e) => e.stopPropagation()}
-                />
-                <div className="flex items-center gap-2 min-w-0 flex-1">
-                  <Icons.file className="h-4 w-4 flex-shrink-0 text-gray-400" />
-                  <span
-                    className={cn("truncate", {
-                      "text-blue-600": document.isSubscribed,
-                    })}
-                  >
-                    {document.title}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        <Breadcrumbs items={breadcrumbs} onNavigate={navigateToBreadcrumb} />
+        <DocumentList
+          folders={currentFolders}
+          files={currentFiles}
+          onFolderClick={navigateToFolder}
+          onSubscribe={subscribeDocument}
+          isSubscribing={isSubscribing}
+        />
       </div>
     );
   };
@@ -497,7 +528,7 @@ export function DocumentPicker({
               )}
               <DialogTitle>{integration.name}</DialogTitle>
             </div>
-            {(loading || syncing) && documents.length > 0 && (
+            {syncing && documents.length > 0 && (
               <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
                 <Icons.spinner className="h-3 w-3 animate-spin" />
                 <span>{syncing ? "Syncing" : "Loading"}</span>
