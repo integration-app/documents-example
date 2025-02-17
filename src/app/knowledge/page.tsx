@@ -219,8 +219,6 @@ export default function KnowledgePage() {
 
       const groups: IntegrationGroup[] = await response.json();
 
-      // Remove setDocumentMap call since we now compute it
-
       setIntegrationGroups(groups);
     } catch (error) {
       console.error("Error fetching documents:", error);
