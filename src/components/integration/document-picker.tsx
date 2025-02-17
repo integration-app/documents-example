@@ -534,7 +534,7 @@ export function DocumentPicker({
               )}
               <DialogTitle>{integration.name}</DialogTitle>
             </div>
-            {syncing && documents.length > 0 && (
+            {syncing && (
               <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
                 <Icons.spinner className="h-3 w-3 animate-spin" />
                 <span>{documents.length} Documents Synced</span>
