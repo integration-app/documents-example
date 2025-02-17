@@ -490,11 +490,17 @@ export function DocumentPicker({
     onOpenChange(false);
   };
 
-  const renderContent = () => {
-    if (loading) return <LoadingState message="Loading documents..." />;
-    if (syncing) return <LoadingState message="Syncing documents..." />;
-    if (error) return <ErrorState message={error} onRetry={startSync} />;
+  const reSync = () => {
+    setDocuments([]);
+    startSync();
+  };
 
+  const renderContent = () => {
+    if (documents.length === 0) {
+      if (loading) return <LoadingState message="Loading documents..." />;
+      if (syncing) return <LoadingState message="Syncing documents..." />;
+      if (error) return <ErrorState message={error} onRetry={startSync} />;
+    }
     return (
       <div className="space-y-4">
         <Breadcrumbs items={breadcrumbs} onNavigate={navigateToBreadcrumb} />
@@ -531,7 +537,7 @@ export function DocumentPicker({
             {syncing && documents.length > 0 && (
               <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
                 <Icons.spinner className="h-3 w-3 animate-spin" />
-                <span>{syncing ? "Syncing" : "Loading"}</span>
+                <span>{documents.length} Documents Synced</span>
               </div>
             )}
           </div>
@@ -549,7 +555,7 @@ export function DocumentPicker({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={startSync}
+                onClick={reSync}
                 className="whitespace-nowrap"
               >
                 <Icons.refresh className="h-4 w-4 mr-2" />
@@ -567,9 +573,7 @@ export function DocumentPicker({
           <Button variant="outline" onClick={onCancel} disabled={syncing}>
             Cancel
           </Button>
-          <Button onClick={handleDone} disabled={isSubscribing}>
-            Done
-          </Button>
+          <Button onClick={handleDone}>Done</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
