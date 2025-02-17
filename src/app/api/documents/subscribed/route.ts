@@ -1,11 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/mongodb';
-import { DocumentModel } from '@/models/document';
-import { KnowledgeModel } from '@/models/knowledge';
-import { getAuthFromRequest } from '@/lib/server-auth';
+import { NextRequest, NextResponse } from "next/server";
+import connectDB from "@/lib/mongodb";
+import { DocumentModel } from "@/models/document";
+import { KnowledgeModel } from "@/models/knowledge";
+import { getAuthFromRequest } from "@/lib/server-auth";
 
 export async function GET(request: NextRequest) {
-  
   const auth = getAuthFromRequest(request);
   const userId = auth.customerId;
 
@@ -13,32 +12,39 @@ export async function GET(request: NextRequest) {
     await connectDB();
 
     // Get all subscribed documents
-    const documents = await DocumentModel.find({ isSubscribed: true, userId }).lean();
+    const documents = await DocumentModel.find({
+      isSubscribed: true,
+      userId,
+    }).lean();
 
     // Get integration info for each unique connectionId
     const connections = await KnowledgeModel.find({
-      connectionId: { 
-        $in: [...new Set(documents.map(doc => doc.connectionId))] 
-      }
+      connectionId: {
+        $in: [...new Set(documents.map((doc) => doc.connectionId))],
+      },
     }).lean();
 
-    // Add integration info to documents
-    const enrichedDocuments = documents.map(doc => {
-      const connection = connections.find(c => c.connectionId === doc.connectionId);
+    // Group documents by connectionId
+    const groupedByConnection = connections.map((connection) => {
+      const connectionDocuments = documents.filter(
+        (doc) => doc.connectionId === connection.connectionId
+      );
+
       return {
-        ...doc,
-        integrationId: connection?.integrationId,
-        integrationName: connection?.integrationName,
-        integrationLogo: connection?.integrationLogo
+        connectionId: connection.connectionId,
+        integrationId: connection.integrationId,
+        integrationName: connection.integrationName,
+        integrationLogo: connection.integrationLogo,
+        documents: connectionDocuments,
       };
     });
 
-    return NextResponse.json(enrichedDocuments);
+    return NextResponse.json(groupedByConnection);
   } catch (error) {
-    console.error('Failed to fetch subscribed documents:', error);
+    console.error("Failed to fetch subscribed documents:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch subscribed documents' },
+      { error: "Failed to fetch subscribed documents" },
       { status: 500 }
     );
   }
-} 
+}

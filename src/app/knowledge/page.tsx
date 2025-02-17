@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { format } from "date-fns";
 import { getAuthHeaders } from "@/app/auth-provider";
@@ -29,27 +29,57 @@ const Icons = {
   refresh: RefreshCwIcon,
 } as const;
 
-interface IntegrationDocuments {
+interface IntegrationGroup {
+  connectionId: string;
   integrationId: string;
   integrationName: string;
-  integrationLogo?: string;
+  integrationLogo: string;
   documents: Document[];
 }
 
-interface GroupedDocuments {
+interface DocumentMap {
   [connectionId: string]: {
-    integrationId: string;
-    integrationName: string;
-    integrationLogo?: string;
-    documents: Document[];
+    [parentId: string]: Document[];
   };
 }
+
+const groupDocuments = (integrationGroups: IntegrationGroup[]) => {
+  const documentMap: DocumentMap = {};
+
+  integrationGroups.forEach((group) => {
+    // Create a lookup of all documents in this group
+    const documentLookup = group.documents.reduce((acc, doc) => {
+      acc[doc.id] = doc;
+      return acc;
+    }, {} as { [key: string]: Document });
+
+    // Initialize the connection's document map
+    documentMap[group.connectionId] = {
+      root: [],
+    };
+
+    // Group documents by parent
+    group.documents.forEach((doc) => {
+      if (doc.parentId && documentLookup[doc.parentId]) {
+        if (!documentMap[group.connectionId][doc.parentId]) {
+          documentMap[group.connectionId][doc.parentId] = [];
+        }
+        documentMap[group.connectionId][doc.parentId].push(doc);
+      } else {
+        // If no valid parentId, add to root
+        documentMap[group.connectionId].root.push(doc);
+      }
+    });
+  });
+
+  return documentMap;
+};
 
 export default function KnowledgePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [integrationDocuments, setIntegrationDocuments] = useState<
-    IntegrationDocuments[]
+  const [integrationGroups, setIntegrationGroups] = useState<
+    IntegrationGroup[]
   >([]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [breadcrumbs, setBreadcrumbs] = useState<
@@ -59,6 +89,12 @@ export default function KnowledgePage() {
 
   // Add polling interval ref
   const pollingInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // Add memoized documentMap
+  const documentMap = useMemo(
+    () => groupDocuments(integrationGroups),
+    [integrationGroups]
+  );
 
   // Start polling when component mounts
   useEffect(() => {
@@ -181,34 +217,9 @@ export default function KnowledgePage() {
         throw new Error("Failed to fetch documents");
       }
 
-      const documents = await response.json();
+      const groups: IntegrationGroup[] = await response.json();
 
-      // Group documents by connection and preserve integration info
-      const grouped = documents.reduce(
-        (
-          acc: GroupedDocuments,
-          doc: Document & {
-            connectionId: string;
-            integrationId: string;
-            integrationName: string;
-            integrationLogo?: string;
-          }
-        ) => {
-          if (!acc[doc.connectionId]) {
-            acc[doc.connectionId] = {
-              integrationId: doc.integrationId,
-              integrationName: doc.integrationName,
-              integrationLogo: doc.integrationLogo,
-              documents: [],
-            };
-          }
-          acc[doc.connectionId].documents.push(doc);
-          return acc;
-        },
-        {}
-      );
-
-      setIntegrationDocuments(Object.values(grouped));
+      setIntegrationGroups(groups);
     } catch (error) {
       console.error("Error fetching documents:", error);
       if (showLoadingState) {
@@ -219,6 +230,30 @@ export default function KnowledgePage() {
         setLoading(false);
       }
     }
+  };
+
+  const getCurrentDocuments = (integrationId: string): Document[] => {
+    // Find the integration group that matches this ID
+    const integration = integrationGroups.find(
+      (group) => group.integrationId === integrationId
+    );
+    if (!integration) {
+      return [];
+    }
+
+    // Find the connection ID for this integration
+    const { connectionId } = integration;
+    if (!connectionId || !documentMap[connectionId]) {
+      return [];
+    }
+
+    // If no folder is selected, return root documents
+    if (currentFolderId === null) {
+      return documentMap[connectionId].root || [];
+    }
+
+    // Return documents for the current folder
+    return documentMap[connectionId][currentFolderId] || [];
   };
 
   // Update initial fetch to show loading state
@@ -280,7 +315,7 @@ export default function KnowledgePage() {
     );
   }
 
-  if (integrationDocuments.length === 0) {
+  if (integrationGroups.length === 0) {
     return (
       <div className="container mx-auto py-8">
         <h1 className="text-2xl font-bold mb-6">Knowledge Base</h1>
@@ -297,26 +332,15 @@ export default function KnowledgePage() {
       {renderBreadcrumbs()}
 
       <div className="space-y-8">
-        {integrationDocuments.map((integration) => {
-          const currentDocs = integration.documents.filter((doc) => {
-            if (currentFolderId === null) {
-              return !doc.parentId;
-            }
-            return doc.parentId === currentFolderId;
-          });
-
+        {integrationGroups.map((integration) => {
+          const currentDocs = getCurrentDocuments(integration.integrationId);
           const folders = currentDocs.filter((doc) => doc.canHaveChildren);
           const files = currentDocs.filter((doc) => !doc.canHaveChildren);
 
-          console.log({ files, folders });
-
           if (currentDocs.length === 0) return null;
 
-          // Use connectionId from first document if integrationId is not available
-          const key = integration.documents[0]?.connectionId;
-
           return (
-            <Card key={key}>
+            <Card key={integration.integrationId}>
               <CardHeader>
                 <div className="flex items-center gap-3">
                   {integration.integrationLogo ? (
