@@ -10,7 +10,7 @@ const webhookSchema = z.object({
     title: z.string().min(1).max(255),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
-    parentId: z.string().min(1).max(100),
+    parentId: z.string().optional(),
     canHaveChildren: z.boolean(),
     resourceURI: z.string().url().max(2048),
   }),
