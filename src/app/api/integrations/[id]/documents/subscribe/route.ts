@@ -41,17 +41,11 @@ export async function PATCH(
         id: documentId,
       });
 
-      const isAFolder = document?.canHaveChildren;
       const unsubScribeFile = !isSubscribed;
       const noDocumentFound = !document;
       const documentIsDownloading = document?.isDownloading;
 
-      if (
-        isAFolder ||
-        unsubScribeFile ||
-        noDocumentFound ||
-        documentIsDownloading
-      ) {
+      if (unsubScribeFile || noDocumentFound || documentIsDownloading) {
         continue;
       }
 
@@ -60,6 +54,14 @@ export async function PATCH(
         { $set: { isDownloading: true } }
       );
 
+      /*
+       * Note about folder downloads:
+       * - For Notion integration: documents can always have children, so we allow
+       *   documents with canHaveChildren: true
+       * 
+       * - For other integrations, if we pass a folder to the integration flow, it will fail gracefully
+       *   as folders cannot be downloaded directly
+       */
       await triggerDownloadDocumentFlow(token, connectionId, documentId);
 
       console.log(
