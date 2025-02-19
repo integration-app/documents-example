@@ -11,11 +11,32 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
-    // Get all subscribed documents
-    const documents = await DocumentModel.find({
-      isSubscribed: true,
-      userId,
-    }).lean();
+    // Get all subscribed documents with truncated content
+    const documents = await DocumentModel.aggregate([
+      {
+        $match: {
+          isSubscribed: true,
+          userId,
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          id: 1,
+          connectionId: 1,
+          title: 1,
+          content: { $substr: ["$content", 0, 10] }, //Truncate
+          createdAt: 1,
+          updatedAt: 1,
+          resourceURI: 1,
+          storageKey: 1,
+          parentId: 1,
+          userId: 1,
+          isSubscribed: 1,
+          isDownloading: 1,
+        },
+      },
+    ])
 
     // Get integration info for each unique connectionId
     const connections = await KnowledgeModel.find({
