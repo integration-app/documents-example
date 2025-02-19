@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
           userId: 1,
           isSubscribed: 1,
           isDownloading: 1,
+          canHaveChildren: 1,
         },
       },
     ])
