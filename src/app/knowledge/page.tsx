@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { format } from "date-fns";
 import { getAuthHeaders } from "@/app/auth-provider";
 import { Document } from "@/models/document";
 import {
@@ -14,10 +13,9 @@ import {
   DownloadIcon,
   RefreshCwIcon,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { DocumentViewer } from "@/components/document-viewer";
-import { Badge } from "@/components/ui/badge";
+import { DocumentItem } from "@/components/document-item";
 
 const Icons = {
   file: FileIcon,
@@ -163,46 +161,6 @@ export default function KnowledgePage() {
     }
   };
 
-  const DocumentActions = ({ doc }: { doc: Document }) => {
-    return (
-      <>
-        {doc.isDownloading && (
-          <Badge variant="secondary" className="gap-1">
-            <Icons.spinner className="h-3 w-3 animate-spin" />
-            <span>Saving to Knowledge Base</span>
-          </Badge>
-        )}
-
-        {!doc.isDownloading && (
-          <>
-            {doc.content && (
-              <Button
-                size="sm"
-                onClick={() => setViewingDocument(doc)}
-                className="h-8 w-8 p-0"
-                title="View content"
-              >
-                <Icons.file className="h-4 w-4" />
-              </Button>
-            )}
-            {doc.storageKey && (
-              <Button
-                size="sm"
-                onClick={() =>
-                  downloadFileToDisk(doc.id as string, doc.storageKey!)
-                }
-                className="h-8 w-8 p-0"
-                title="Download document"
-              >
-                <Icons.download className="h-4 w-4" />
-              </Button>
-            )}
-          </>
-        )}
-      </>
-    );
-  };
-
   const fetchSubscribedDocuments = async (showLoadingState = false) => {
     try {
       if (showLoadingState) {
@@ -299,6 +257,12 @@ export default function KnowledgePage() {
     );
   };
 
+  const onClickViewContent = (document: Document) => {
+
+
+    setViewingDocument(document);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -360,69 +324,21 @@ export default function KnowledgePage() {
               <CardContent>
                 <div className="space-y-2">
                   {folders.map((doc) => (
-                    <div
+                    <DocumentItem
                       key={doc.id}
-                      className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-md cursor-pointer"
-                      onClick={() => navigateToFolder(doc.id, doc.title)}
-                    >
-                      <Icons.folder className="h-4 w-4 text-gray-400" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium truncate">
-                            {doc.title}
-                          </p>
-                          <span className="text-xs text-gray-400">
-                            {doc.id}
-                          </span>
-                        </div>
-                        {doc.updatedAt && (
-                          <p className="text-xs text-gray-500">
-                            Updated{" "}
-                            {format(new Date(doc.updatedAt), "MMM d, yyyy")}
-                          </p>
-                        )}
-                      </div>
-                      <Icons.chevronRight className="h-4 w-4 text-gray-400" />
-                    </div>
+                      document={doc}
+                      onItemClick={navigateToFolder}
+                      onClickViewContent={onClickViewContent}
+                    />
                   ))}
 
                   {files.map((doc) => (
-                    <div
+                    <DocumentItem
                       key={doc.id}
-                      className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-md"
-                    >
-                      <Icons.file className="h-4 w-4 text-gray-400" />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-medium truncate">
-                            {doc.title}
-                          </p>
-                          <span className="text-xs text-gray-400">
-                            {doc.id}
-                          </span>
-                        </div>
-                        {doc.updatedAt && (
-                          <p className="text-xs text-gray-500">
-                            Updated{" "}
-                            {format(new Date(doc.updatedAt), "MMM d, yyyy")}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <DocumentActions doc={doc} />
-                        {doc.resourceURI && (
-                          <a
-                            href={doc.resourceURI}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-500 hover:text-blue-600 h-8 w-8 flex items-center justify-center"
-                            title="Open preview"
-                          >
-                            <Icons.externalLink className="h-4 w-4" />
-                          </a>
-                        )}
-                      </div>
-                    </div>
+                      document={doc}
+                      onClickViewContent={onClickViewContent}
+                      onDownload={downloadFileToDisk}
+                    />
                   ))}
                 </div>
               </CardContent>
@@ -435,7 +351,7 @@ export default function KnowledgePage() {
         <DocumentViewer
           documentId={viewingDocument.id}
           title={viewingDocument.title}
-          open={!!viewingDocument}
+          open={viewingDocument !== null}
           onOpenChange={(open) => !open && setViewingDocument(null)}
         />
       )}
