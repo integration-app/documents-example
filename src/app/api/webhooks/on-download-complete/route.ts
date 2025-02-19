@@ -3,12 +3,28 @@ import connectDB from "@/lib/mongodb";
 import { deleteFileFromS3, processAndUploadFile } from "@/lib/s3-utils";
 import { DocumentModel } from "@/models/document";
 import { NextResponse } from "next/server";
-import { v4 as uuidv4 } from 'uuid';  
+import { v4 as uuidv4 } from "uuid";
 
 const onDownloadCompleteWebhookPayloadSchema = z.object({
-  downloadURI: z.string().url().optional(),
+  downloadURI: z
+    .union([
+      z.string().url().min(1),
+      z
+        .string()
+        .length(0)
+        .transform(() => undefined),
+    ])
+    .optional(),
   documentId: z.string(),
-  text: z.string().optional(),
+  text: z
+    .union([
+      z.string().min(1),
+      z
+        .string()
+        .length(0)
+        .transform(() => undefined),
+    ])
+    .optional(),
   connectionId: z.string(),
 });
 
@@ -52,46 +68,50 @@ export async function POST(request: Request) {
 
     if (!document) {
       console.error(`Document with id ${documentId} not found`);
-      return NextResponse.json(
-        { error: "Document not found" },
-        { status: 404 }
-      );
-    }
-
-    if (!downloadURI) {
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
+    let updateData = {};
 
-    let newStorageKey: string | undefined;
+    if (downloadURI) {
+      let newStorageKey: string | undefined;
 
-    try {
-      newStorageKey = await processAndUploadFile(
-        downloadURI,
-        `${connectionId}/${documentId}/${uuidv4()}/${document.title}`
-      );
-    } catch (error) {
-      console.error("Failed to process file:", error);
-      return NextResponse.json(
-        { error: "Failed to process file" },
-        { status: 500 }
-      );
-    }
-
-    // Delete existing file from S3 if it exists
-    if (document.storageKey) {
       try {
-        console.log(`Deleting file with key ${document.storageKey} from S3`);
-        await deleteFileFromS3(document.storageKey);
-        console.log(
-          `Successfully deleted file with key ${document.storageKey} from S3`
+        newStorageKey = await processAndUploadFile(
+          downloadURI,
+          `${connectionId}/${documentId}/${uuidv4()}/${document.title}`
         );
-      } catch (s3Error) {
-        console.error(
-          `Failed to delete file from S3: ${document.storageKey}`,
-          s3Error
+      } catch (error) {
+        console.error("Failed to process file:", error);
+        return NextResponse.json(
+          { error: "Failed to process file" },
+          { status: 500 }
         );
       }
+
+      // Delete existing file from S3 if it exists
+      if (document.storageKey) {
+        try {
+          console.log(`Deleting file with key ${document.storageKey} from S3`);
+          await deleteFileFromS3(document.storageKey);
+          console.log(
+            `Successfully deleted file with key ${document.storageKey} from S3`
+          );
+        } catch (s3Error) {
+          console.error(
+            `Failed to delete file from S3: ${document.storageKey}`,
+            s3Error
+          );
+        }
+      }
+
+      updateData = newStorageKey ? { storageKey: newStorageKey } : {};
+    }
+
+    if (text) {
+      updateData = {
+        content: text,
+      };
     }
 
     await DocumentModel.updateOne(
@@ -100,14 +120,10 @@ export async function POST(request: Request) {
         $set: {
           lastSyncedAt: new Date().toISOString(),
           isDownloading: false,
-          ...(text ? { content: text } : {}),
-          ...(downloadURI && newStorageKey
-            ? { storageKey: newStorageKey }
-            : {}),
+          ...updateData,
         },
       }
     );
-
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error("Failed to process webhook:", error);
