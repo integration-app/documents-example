@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Settings } from "lucide-react";
-import { DocumentPicker } from "@/components/integration/document-picker";
+import { DocumentPicker } from "@/app/integrations/components/document-picker";
 import { usePolling } from "@/hooks/use-polling";
 import { getAuthHeaders } from "@/app/auth-provider";
 import Image from "next/image";
