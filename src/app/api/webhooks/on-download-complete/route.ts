@@ -105,6 +105,7 @@ export async function POST(request: Request) {
             downloadURI,
             `${connectionId}/${documentId}/${uuidv4()}/${document.title}`
           );
+        console.log(`FILE UPLOADED TO S3: ${keyWithExtension}`);
 
         newStorageKey = keyWithExtension;
         buffer = _buffer;
@@ -117,7 +118,7 @@ export async function POST(request: Request) {
       }
 
       if (newStorageKey && document.storageKey) {
-        console.log("DELETING OLD FILE FROM S3");
+        console.log(`DELETING OLD FILE FROM S3: ${document.storageKey}`);
         deleteFileFromS3(document.storageKey);
       }
 
@@ -167,11 +168,14 @@ export async function POST(request: Request) {
               $set: { content: text, isExtractingText: false },
             }
           );
+
+          console.log("DOCUMENT UPDATED WITH EXTRACTED TEXT");
         }
       }
 
       return NextResponse.json({ success: true }, { status: 200 });
     }
+
   } catch (error) {
     console.error("Failed to process webhook:", error);
     return NextResponse.json(

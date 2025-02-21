@@ -32,7 +32,7 @@ export const isSupportedFile = (name: string) => {
 };
 
 export const convertJSONToText = (elements: PartitionResponse["elements"]) => {
-  return elements?.map((element) => element.text).join("\n");
+  return JSON.stringify(elements);
 };
 
 const extractTextFromFile = async ({
