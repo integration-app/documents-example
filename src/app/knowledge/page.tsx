@@ -14,8 +14,8 @@ import {
   RefreshCwIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { DocumentViewer } from "@/components/document-viewer";
-import { DocumentItem } from "@/components/document-item";
+import { DocumentViewer } from "@/app/knowledge/components/document-viewer";
+import { DocumentItem } from "@/app/knowledge/components/document-item";
 
 const Icons = {
   file: FileIcon,
