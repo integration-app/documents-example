@@ -22,6 +22,7 @@ import {
   FolderIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import Image from "next/image";
 
 const Icons = {
   file: FileIcon,
@@ -522,7 +523,9 @@ export function DocumentPicker({
           <div className="flex items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-3">
               {integration.logoUri ? (
-                <img
+                <Image
+                  width={32}
+                  height={32}
                   src={integration.logoUri}
                   alt={`${integration.name} logo`}
                   className="w-8 h-8 rounded-lg"

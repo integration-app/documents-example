@@ -11,6 +11,7 @@ import { getAuthHeaders } from "@/app/auth-provider";
 import Image from "next/image";
 import { useIntegrationApp } from "@integration-app/react";
 import { Icons } from "@/components/ui/icons";
+import { toast } from "sonner";
 
 interface IntegrationListItemProps {
   integration: Integration;
@@ -24,37 +25,30 @@ export function IntegrationListItem({
   const router = useRouter();
   const integrationApp = useIntegrationApp();
   const [isPickerOpen, setIsPickerOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const { startPolling, stopPolling } = usePolling({
-    url: isLoading
-      ? `/api/integrations/${integration.connection?.id}/sync-status`
-      : "",
+    url: `/api/integrations/${integration.connection?.id}/sync-status`,
     interval: 2000,
     onSuccess: (data) => {
-      if (data.status === "completed") {
+      if (data.status === "completed" || data.status === "failed") {
         stopPolling();
-        setIsLoading(false);
-        setIsPickerOpen(true);
+        setIsSyncing(false);
+
+        if (data.status === "completed") {
+          setIsPickerOpen(true);
+        }
       }
     },
   });
 
-  const handleConnect = async () => {
+  const startSync = async ({ connectionId }: { connectionId: string }) => {
+    setIsSyncing(true);
+
     try {
-      setIsLoading(true);
-
-      const connection = await integrationApp
-        .integration(integration.key)
-        .openNewConnection();
-
-      if (!connection?.id) {
-        throw new Error("No connection ID received");
-      }
-
-      // Start document sync
-      await fetch(`/api/integrations/${connection.id}/sync`, {
+      await fetch(`/api/integrations/${connectionId}/sync`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -67,11 +61,38 @@ export function IntegrationListItem({
         }),
       });
 
+      // We want to check at interval of 2 seconds if the sync is completed
       startPolling();
+
       await onRefresh();
     } catch (error) {
-      console.error("Failed to connect:", error);
-      setIsLoading(false);
+      toast.error("Failed to sync documents", {
+        description: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleConnect = async () => {
+    try {
+      setIsConnecting(true);
+
+      const connection = await integrationApp
+        .integration(integration.key)
+        .openNewConnection();
+
+      if (!connection?.id) {
+        throw new Error("No connection ID received");
+      }
+
+      await startSync({ connectionId: connection.id });
+    } catch (error) {
+      toast.error("Failed to connect", {
+        description: error instanceof Error ? error.message : "Unknown error",
+      });
+    } finally {
+      setIsConnecting(false);
     }
   };
 
@@ -122,10 +143,18 @@ export function IntegrationListItem({
               {integration.name[0]}
             </div>
           )}
-          <div>
+
+          <div className="flex  gap-2">
             <h3 className="font-medium">{integration.name}</h3>
             {integration.connection?.disconnected && (
               <p className="text-sm text-red-500">Disconnected</p>
+            )}
+
+            {isSyncing && (
+              <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
+                <Icons.spinner className="h-3 w-3 animate-spin" />
+                <span>Syncing...</span>
+              </div>
             )}
           </div>
         </div>
@@ -160,9 +189,9 @@ export function IntegrationListItem({
               onClick={handleConnect}
               variant="default"
               size="sm"
-              disabled={isLoading}
+              disabled={isConnecting}
             >
-              {isLoading ? (
+              {isConnecting ? (
                 <>
                   <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
                   Connecting
