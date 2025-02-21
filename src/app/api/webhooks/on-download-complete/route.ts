@@ -69,17 +69,33 @@ export async function POST(request: Request) {
       id: documentId,
     });
 
-    console.log("document to update", document);
-
     if (!document) {
       console.error(`Document with id ${documentId} not found`);
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
-    let updateData = {};
-    let buffer: Buffer | undefined;
+    if (text) {
+      const updateData = {
+        content: text,
+      };
+
+      await DocumentModel.findOneAndUpdate(
+        { connectionId, id: documentId },
+        {
+          $set: {
+            lastSyncedAt: new Date().toISOString(),
+            isDownloading: false,
+            ...updateData,
+          },
+        },
+        { new: true }
+      );
+
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
 
     if (downloadURI) {
+      let buffer: Buffer | undefined;
       let newStorageKey: string | undefined;
 
       try {
@@ -99,77 +115,57 @@ export async function POST(request: Request) {
         );
       }
 
-      // Delete existing file from S3 if it exists
-      if (document.storageKey) {
-        try {
-          console.log(`Deleting file with key ${document.storageKey} from S3`);
-          await deleteFileFromS3(document.storageKey);
-          console.log(
-            `Successfully deleted file with key ${document.storageKey} from S3`
+      if (newStorageKey && document.storageKey) {
+        deleteFileFromS3(document.storageKey);
+      }
+
+      const updateData = newStorageKey ? { storageKey: newStorageKey } : {};
+      const documentAfterDownloadStatusIsUpdated =
+        await DocumentModel.findOneAndUpdate(
+          { connectionId, id: documentId },
+          {
+            $set: {
+              lastSyncedAt: new Date().toISOString(),
+              isDownloading: false,
+              ...updateData,
+            },
+          },
+          { new: true }
+        );
+
+      if (
+        documentAfterDownloadStatusIsUpdated?.storageKey &&
+        UnstructuredIsEnabled &&
+        buffer
+      ) {
+        const _isSupportedFile = isSupportedFile(
+          documentAfterDownloadStatusIsUpdated.title
+        );
+
+        if (_isSupportedFile) {
+          await DocumentModel.updateOne(
+            { connectionId, id: documentId },
+            {
+              $set: { isExtractingText: true },
+            }
           );
-        } catch (s3Error) {
-          console.error(
-            `Failed to delete file from S3: ${document.storageKey}`,
-            s3Error
+
+          const text = await Unstructured.extractTextFromFile({
+            fileName: documentAfterDownloadStatusIsUpdated.title,
+            content: buffer,
+          });
+
+          await DocumentModel.updateOne(
+            { connectionId, id: documentId },
+            {
+              $set: { content: text, isExtractingText: false },
+            }
           );
         }
       }
 
-      updateData = newStorageKey ? { storageKey: newStorageKey } : {};
+      return NextResponse.json({ success: true }, { status: 200 });
     }
-
-    if (text) {
-      updateData = {
-        content: text,
-      };
-    }
-
-    const documentAfterDownloadStatusIsUpdated =
-      await DocumentModel.findOneAndUpdate(
-        { connectionId, id: documentId },
-        {
-          $set: {
-            lastSyncedAt: new Date().toISOString(),
-            isDownloading: false,
-            ...updateData,
-          },
-        },
-        { new: true }
-      );
-
-    if (
-      documentAfterDownloadStatusIsUpdated?.storageKey &&
-      UnstructuredIsEnabled &&
-      downloadURI &&
-      buffer
-    ) {
-      const _isSupportedFile = isSupportedFile(
-        documentAfterDownloadStatusIsUpdated.title
-      );
-
-      if (_isSupportedFile) {
-        await DocumentModel.updateOne(
-          { connectionId, id: documentId },
-          {
-            $set: { isExtractingText: true },
-          }
-        );
-
-        const text = await Unstructured.extractTextFromFile({
-          fileName: documentAfterDownloadStatusIsUpdated.title,
-          content: buffer,
-        });
-
-        await DocumentModel.updateOne(
-          { connectionId, id: documentId },
-          {
-            $set: { content: text, isExtractingText: false },
-          }
-        );
-      }
-    }
-
-    return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error("Failed to process webhook:", error);
     return NextResponse.json(
