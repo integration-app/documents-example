@@ -6,7 +6,7 @@ import { AuthProvider } from "./auth-provider";
 import { Toaster } from "sonner";
 import { Instrument_Sans } from "next/font/google";
 
-const instumentSans = Instrument_Sans({
+const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
 });
 
