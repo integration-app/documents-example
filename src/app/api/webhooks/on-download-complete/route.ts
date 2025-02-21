@@ -99,6 +99,7 @@ export async function POST(request: Request) {
       let newStorageKey: string | undefined;
 
       try {
+        console.log("FETCHING FILE FROM INTEGRATION AND UPLOADING TO S3");
         const { keyWithExtension, buffer: _buffer } =
           await processAndUploadFileToS3(
             downloadURI,
@@ -116,6 +117,7 @@ export async function POST(request: Request) {
       }
 
       if (newStorageKey && document.storageKey) {
+        console.log("DELETING OLD FILE FROM S3");
         deleteFileFromS3(document.storageKey);
       }
 
@@ -143,6 +145,8 @@ export async function POST(request: Request) {
         );
 
         if (_isSupportedFile) {
+          console.log("EXTRACTING TEXT FROM FILE");
+
           await DocumentModel.updateOne(
             { connectionId, id: documentId },
             {
@@ -154,6 +158,8 @@ export async function POST(request: Request) {
             fileName: documentAfterDownloadStatusIsUpdated.title,
             content: buffer,
           });
+
+          console.log("UPDATING DOCUMENT WITH EXTRACTED TEXT");
 
           await DocumentModel.updateOne(
             { connectionId, id: documentId },
