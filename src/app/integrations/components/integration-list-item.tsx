@@ -112,6 +112,9 @@ export function IntegrationListItem({
       await onRefresh();
     } catch (error) {
       console.error("Failed to disconnect:", error);
+      toast.error("Failed to disconnect", {
+        description: error instanceof Error ? error.message : "Unknown error",
+      });
     } finally {
       setIsDisconnecting(false);
     }
