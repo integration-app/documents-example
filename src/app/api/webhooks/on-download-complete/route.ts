@@ -1,9 +1,14 @@
 import { z } from "zod";
 import connectDB from "@/lib/mongodb";
-import { deleteFileFromS3, processAndUploadFile } from "@/lib/s3-utils";
+import { deleteFileFromS3, processAndUploadFileToS3 } from "@/lib/s3-utils";
 import { DocumentModel } from "@/models/document";
 import { NextResponse } from "next/server";
 import { v4 as uuidv4 } from "uuid";
+import {
+  isSupportedFile,
+  Unstructured,
+  UnstructuredIsEnabled,
+} from "./text-extraction-utils";
 
 const onDownloadCompleteWebhookPayloadSchema = z.object({
   downloadURI: z
@@ -72,15 +77,20 @@ export async function POST(request: Request) {
     }
 
     let updateData = {};
+    let buffer: Buffer | undefined;
 
     if (downloadURI) {
       let newStorageKey: string | undefined;
 
       try {
-        newStorageKey = await processAndUploadFile(
-          downloadURI,
-          `${connectionId}/${documentId}/${uuidv4()}/${document.title}`
-        );
+        const { keyWithExtension, buffer: _buffer } =
+          await processAndUploadFileToS3(
+            downloadURI,
+            `${connectionId}/${documentId}/${uuidv4()}/${document.title}`
+          );
+
+        newStorageKey = keyWithExtension;
+        buffer = _buffer;
       } catch (error) {
         console.error("Failed to process file:", error);
         return NextResponse.json(
@@ -114,16 +124,51 @@ export async function POST(request: Request) {
       };
     }
 
-    await DocumentModel.updateOne(
-      { connectionId, id: documentId },
-      {
-        $set: {
-          lastSyncedAt: new Date().toISOString(),
-          isDownloading: false,
-          ...updateData,
+    const documentAfterDownloadStatusIsUpdated =
+      await DocumentModel.findOneAndUpdate(
+        { connectionId, id: documentId },
+        {
+          $set: {
+            lastSyncedAt: new Date().toISOString(),
+            isDownloading: false,
+            ...updateData,
+          },
         },
+        { new: true }
+      );
+
+    if (
+      documentAfterDownloadStatusIsUpdated?.storageKey &&
+      UnstructuredIsEnabled &&
+      downloadURI &&
+      buffer
+    ) {
+      const _isSupportedFile = isSupportedFile(
+        documentAfterDownloadStatusIsUpdated.title
+      );
+
+      if (_isSupportedFile) {
+        await DocumentModel.updateOne(
+          { connectionId, id: documentId },
+          {
+            $set: { isExtractingText: true },
+          }
+        );
+
+        const text = await Unstructured.extractTextFromFile({
+          fileName: documentAfterDownloadStatusIsUpdated.title,
+          content: buffer,
+        });
+
+        await DocumentModel.updateOne(
+          { connectionId, id: documentId },
+          {
+            $set: { content: text, isExtractingText: false },
+          }
+        );
       }
-    );
+    }
+
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error("Failed to process webhook:", error);

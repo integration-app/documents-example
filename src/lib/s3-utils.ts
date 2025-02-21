@@ -20,16 +20,23 @@ const s3Client = new S3Client({
  * @param s3Key - The key (path) where the file will be stored in S3
  * @returns Promise<string> - The S3 URL where the file was uploaded
  */
-export async function processAndUploadFile(downloadURI: string, s3Key: string) {
+export async function processAndUploadFileToS3(downloadURI: string, s3Key: string) {
   const { buffer, extension, contentType } = await downloadFile(downloadURI);
 
-  return await uploadToS3(s3Key, buffer, extension ?? "", contentType);
+  const keyWithExtension = await uploadToS3(s3Key, buffer, extension ?? "", contentType);
+
+  return {
+    keyWithExtension,
+    buffer  
+  };
 }
 
 /**
- * Downloads a file from a given URI and uploads it to S3
- * @param downloadURI - The URI to download the file from
- * @param s3Key - The key (path) where the file will be stored xin S3
+ * Uploads a file to S3
+ * @param key - The key (path) where the file will be stored in S3
+ * @param body - The file to upload
+ * @param extension - The extension of the file
+ * @param contentType - The content type of the file
  * @returns Promise<string> - The S3 URL where the file was uploaded
  */
 export async function uploadToS3(

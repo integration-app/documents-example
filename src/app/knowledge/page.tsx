@@ -258,8 +258,6 @@ export default function KnowledgePage() {
   };
 
   const onClickViewContent = (document: Document) => {
-
-
     setViewingDocument(document);
   };
 
@@ -304,7 +302,7 @@ export default function KnowledgePage() {
           if (currentDocs.length === 0) return null;
 
           return (
-            <Card key={integration.integrationId}>
+            <Card key={integration.integrationId} className="shadow-none">
               <CardHeader>
                 <div className="flex items-center gap-3">
                   {integration.integrationLogo ? (
@@ -325,6 +323,7 @@ export default function KnowledgePage() {
                 <div className="space-y-2">
                   {folders.map((doc) => (
                     <DocumentItem
+                      integrationName={integration.integrationName}
                       key={doc.id}
                       document={doc}
                       onItemClick={navigateToFolder}
@@ -334,6 +333,7 @@ export default function KnowledgePage() {
 
                   {files.map((doc) => (
                     <DocumentItem
+                      integrationName={integration.integrationName}
                       key={doc.id}
                       document={doc}
                       onClickViewContent={onClickViewContent}

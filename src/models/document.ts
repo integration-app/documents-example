@@ -15,6 +15,7 @@ export interface Document {
   lastSyncedAt: string;
   storageKey?: string;
   isDownloading?: boolean;
+  isExtractingText?: boolean;
 }
 
 interface DocumentWithConnection extends Document {
@@ -53,6 +54,7 @@ const documentSchema = new Schema<DocumentWithConnection>(
       default: null,
     },
     isDownloading: { type: Boolean, default: false },
+    isExtractingText: { type: Boolean, default: false },
   },
   {
     _id: false,
