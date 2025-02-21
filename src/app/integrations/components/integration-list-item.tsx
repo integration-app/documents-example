@@ -97,7 +97,9 @@ export function IntegrationListItem({
   };
 
   const handleDisconnect = async () => {
-    if (!integration.connection?.id) return;
+    if (!integration.connection?.id) {
+      return;
+    }
 
     try {
       setIsDisconnecting(true);
