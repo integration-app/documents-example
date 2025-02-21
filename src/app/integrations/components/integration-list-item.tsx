@@ -10,6 +10,7 @@ import { usePolling } from "@/hooks/use-polling";
 import { getAuthHeaders } from "@/app/auth-provider";
 import Image from "next/image";
 import { useIntegrationApp } from "@integration-app/react";
+import { Icons } from "@/components/ui/icons";
 
 interface IntegrationListItemProps {
   integration: Integration;
@@ -77,6 +78,7 @@ export function IntegrationListItem({
     if (!integration.connection?.id) return;
 
     try {
+      setIsDisconnecting(true);
       await fetch(`/api/integrations/${integration.connection.id}/knowledge`, {
         method: "DELETE",
         headers: getAuthHeaders(),
@@ -86,6 +88,8 @@ export function IntegrationListItem({
       await onRefresh();
     } catch (error) {
       console.error("Failed to disconnect:", error);
+    } finally {
+      setIsDisconnecting(false);
     }
   };
 
@@ -126,32 +130,52 @@ export function IntegrationListItem({
         </div>
 
         <div className="flex items-center gap-2">
-          {integration.connection && !integration.connection.disconnected && (
+          {integration.connection && !integration.connection.disconnected ? (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsPickerOpen(true)}
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Configure
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={handleDisconnect}
+                size="sm"
+                disabled={isDisconnecting}
+                className="text-red-500"
+              >
+                {isDisconnecting ? (
+                  <span>
+                    <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                    Disconnecting
+                  </span>
+                ) : (
+                  "Disconnect"
+                )}
+              </Button>
+            </>
+          ) : (
             <Button
-              variant="outline"
+              onClick={handleConnect}
+              variant="default"
               size="sm"
-              onClick={() => setIsPickerOpen(true)}
+              disabled={isLoading}
             >
-              <Settings className="w-4 h-4 mr-2" />
-              Configure
+              {isLoading ? (
+                <>
+                  <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
+                  Connecting
+                </>
+              ) : (
+                "Connect"
+              )}
             </Button>
           )}
-          <Button
-            onClick={() =>
-              integration.connection ? handleDisconnect() : handleConnect()
-            }
-            variant={integration.connection ? "destructive" : "default"}
-            size="sm"
-            disabled={isLoading}
-          >
-            {isLoading
-              ? "Connecting..."
-              : integration.connection
-              ? "Disconnect"
-              : "Connect"}
-          </Button>
         </div>
       </div>
     </>
   );
-} 
+}
