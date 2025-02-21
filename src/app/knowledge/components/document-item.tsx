@@ -76,6 +76,13 @@ export function DocumentItem({
           </Badge>
         )}
 
+        {document.isExtractingText && (
+          <Badge variant="secondary" className="gap-1">
+            <Icons.spinner className="h-3 w-3 animate-spin" />
+            <span>Extracting text from file</span>
+          </Badge>
+        )}
+
         {document.content && (
           <Button
             size="sm"
