@@ -234,7 +234,7 @@ export function DocumentPicker({
       const data = await response.json();
 
       if (data.status === "in_progress") {
-        setSyncing(true);
+        setIsSyncing(true);
         startPolling();
       } else {
         setCheckedInitialSync(true);
