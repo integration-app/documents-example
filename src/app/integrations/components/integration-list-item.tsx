@@ -80,19 +80,21 @@ export function IntegrationListItem({
 
       const connection = await integrationApp
         .integration(integration.key)
-        .openNewConnection();
+        .openNewConnection(); 
 
       if (!connection?.id) {
         throw new Error("No connection ID received");
       }
 
+      setIsConnecting(false);
+
       await startSync({ connectionId: connection.id });
     } catch (error) {
+      setIsConnecting(false);
+
       toast.error("Failed to connect", {
         description: error instanceof Error ? error.message : "Unknown error",
       });
-    } finally {
-      setIsConnecting(false);
     }
   };
 
