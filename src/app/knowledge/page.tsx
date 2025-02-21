@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { DocumentViewer } from "@/app/knowledge/components/document-viewer";
 import { DocumentItem } from "@/app/knowledge/components/document-item";
+import Image from "next/image";
 
 const Icons = {
   file: FileIcon,
@@ -306,10 +307,12 @@ export default function KnowledgePage() {
               <CardHeader>
                 <div className="flex items-center gap-3">
                   {integration.integrationLogo ? (
-                    <img
+                    <Image
                       src={integration.integrationLogo}
                       alt={`${integration.integrationName} logo`}
-                      className="w-8 h-8 rounded-lg"
+                      width={32}
+                      height={32}
+                      className="rounded-lg"
                     />
                   ) : (
                     <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
