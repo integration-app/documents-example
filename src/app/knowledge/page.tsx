@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { DocumentViewer } from "@/app/knowledge/components/document-viewer";
 import { DocumentItem } from "@/app/knowledge/components/document-item";
+import Image from "next/image";
 
 const Icons = {
   file: FileIcon,
@@ -258,8 +259,6 @@ export default function KnowledgePage() {
   };
 
   const onClickViewContent = (document: Document) => {
-
-
     setViewingDocument(document);
   };
 
@@ -304,14 +303,16 @@ export default function KnowledgePage() {
           if (currentDocs.length === 0) return null;
 
           return (
-            <Card key={integration.integrationId}>
+            <Card key={integration.integrationId} className="shadow-none">
               <CardHeader>
                 <div className="flex items-center gap-3">
                   {integration.integrationLogo ? (
-                    <img
+                    <Image
                       src={integration.integrationLogo}
                       alt={`${integration.integrationName} logo`}
-                      className="w-8 h-8 rounded-lg"
+                      width={32}
+                      height={32}
+                      className="rounded-lg"
                     />
                   ) : (
                     <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
@@ -325,6 +326,7 @@ export default function KnowledgePage() {
                 <div className="space-y-2">
                   {folders.map((doc) => (
                     <DocumentItem
+                      integrationName={integration.integrationName}
                       key={doc.id}
                       document={doc}
                       onItemClick={navigateToFolder}
@@ -334,6 +336,7 @@ export default function KnowledgePage() {
 
                   {files.map((doc) => (
                     <DocumentItem
+                      integrationName={integration.integrationName}
                       key={doc.id}
                       document={doc}
                       onClickViewContent={onClickViewContent}

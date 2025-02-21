@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
           id: 1,
           connectionId: 1,
           title: 1,
-          content: { $substr: ["$content", 0, 10] }, //Truncate
+          content: { $substr: ["$content", 0, 10] }, //Truncate for performance
           createdAt: 1,
           updatedAt: 1,
           resourceURI: 1,
@@ -35,6 +35,7 @@ export async function GET(request: NextRequest) {
           isSubscribed: 1,
           isDownloading: 1,
           canHaveChildren: 1,
+          isExtractingText: 1,
         },
       },
     ])

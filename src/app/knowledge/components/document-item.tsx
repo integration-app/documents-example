@@ -25,10 +25,12 @@ interface DocumentItemProps {
   onItemClick?: (id: string, title: string) => void;
   onClickViewContent?: (document: Document) => void;
   onDownload?: (docId: string, storageKey: string) => void;
+  integrationName: string;
 }
 
 export function DocumentItem({
   document,
+  integrationName,
   onItemClick: onFolderClick,
   onClickViewContent,
   onDownload,
@@ -70,7 +72,14 @@ export function DocumentItem({
         {document.isDownloading && (
           <Badge variant="secondary" className="gap-1">
             <Icons.spinner className="h-3 w-3 animate-spin" />
-            <span>Saving to Knowledge Base</span>
+            <span>Downloading from {integrationName}</span>
+          </Badge>
+        )}
+
+        {document.isExtractingText && (
+          <Badge variant="secondary" className="gap-1">
+            <Icons.spinner className="h-3 w-3 animate-spin" />
+            <span>Extracting text from file</span>
           </Badge>
         )}
 
