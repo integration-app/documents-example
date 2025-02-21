@@ -208,6 +208,13 @@ export function DocumentPicker({
     }
   }, [open, integration.connection?.id, checkedInitialSync]);
 
+  // Effect for initial load only
+  useEffect(() => {
+    if (open && integration.connection?.id) {
+      fetchDocuments();
+    }
+  }, [open, integration.connection?.id]);
+
   const checkSyncStatus = async () => {
     if (!integration.connection?.id) return;
 
@@ -282,7 +289,7 @@ export function DocumentPicker({
     return pollInterval;
   };
 
-  const startSync = async () => {
+  const manualSync = async () => {
     if (!integration.connection?.id) return;
 
     setSyncing(true);
@@ -342,13 +349,6 @@ export function DocumentPicker({
       setLoading(false);
     }
   };
-
-  // Effect for initial load only
-  useEffect(() => {
-    if (open && integration.connection?.id) {
-      fetchDocuments();
-    }
-  }, [open, integration.connection?.id]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -493,14 +493,14 @@ export function DocumentPicker({
 
   const reSync = () => {
     setDocuments([]);
-    startSync();
+    manualSync();
   };
 
   const renderContent = () => {
     if (documents.length === 0) {
       if (loading) return <LoadingState message="Loading documents..." />;
       if (syncing) return <LoadingState message="Syncing documents..." />;
-      if (error) return <ErrorState message={error} onRetry={startSync} />;
+      if (error) return <ErrorState message={error} onRetry={manualSync} />;
     }
     return (
       <div className="space-y-4">

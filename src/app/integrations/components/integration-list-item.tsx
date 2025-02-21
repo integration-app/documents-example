@@ -175,12 +175,11 @@ export function IntegrationListItem({
                 onClick={handleDisconnect}
                 size="sm"
                 disabled={isDisconnecting}
-                className="text-red-500"
               >
                 {isDisconnecting ? (
                   <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
-                  "Disconnect"
+                  <span className="text-red-500">Disconnect</span>
                 )}
               </Button>
             </>
