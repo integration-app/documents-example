@@ -44,6 +44,7 @@ export function IntegrationListItem({
   const handleConnect = async () => {
     try {
       setIsLoading(true);
+
       const connection = await integrationApp
         .integration(integration.key)
         .openNewConnection();
@@ -148,10 +149,7 @@ export function IntegrationListItem({
                 className="text-red-500"
               >
                 {isDisconnecting ? (
-                  <span>
-                    <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                    Disconnecting
-                  </span>
+                  <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   "Disconnect"
                 )}
