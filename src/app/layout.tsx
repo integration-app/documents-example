@@ -26,7 +26,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${instumentSans.className} antialiased bg-white text-gray-900`}
+        className={`${instrumentSans.className} antialiased bg-white text-gray-900`}
       >
         <ThemeProvider
           attribute="class"
