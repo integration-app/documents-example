@@ -33,14 +33,6 @@ const Icons = {
   externalLink: ExternalLinkIcon,
 } as const;
 
-interface DocumentPickerProps {
-  integration: Integration;
-  onComplete: () => void;
-  onCancel: () => void;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
-
 interface BreadcrumbItem {
   id: string;
   title: string;
@@ -184,16 +176,27 @@ function ErrorState({ message, onRetry }: ErrorStateProps) {
   );
 }
 
+interface DocumentPickerProps {
+  integration: Integration;
+  onComplete: () => void;
+  onCancel: () => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  setIsSyncing: (syncing: boolean) => void;
+  isSyncing: boolean;
+}
+
 export function DocumentPicker({
   integration,
   onComplete,
   onCancel,
   open,
   onOpenChange,
+  setIsSyncing,
+  isSyncing,
 }: DocumentPickerProps) {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [loading, setLoading] = useState(true);
-  const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -268,18 +271,18 @@ export function DocumentPicker({
         }
         if (data.status === "completed") {
           clearInterval(pollInterval);
-          setSyncing(false);
+          setIsSyncing(false);
           setCheckedInitialSync(true);
           fetchDocuments();
         } else if (data.status === "failed") {
           clearInterval(pollInterval);
-          setSyncing(false);
+          setIsSyncing(false);
           setCheckedInitialSync(true);
           setError("Sync failed: " + (data.error || "Unknown error"));
         }
       } catch (error) {
         clearInterval(pollInterval);
-        setSyncing(false);
+        setIsSyncing(false);
         setCheckedInitialSync(true);
         setError("Failed to check sync status");
         console.error("Sync status error:", error);
@@ -292,7 +295,7 @@ export function DocumentPicker({
   const manualSync = async () => {
     if (!integration.connection?.id) return;
 
-    setSyncing(true);
+    setIsSyncing(true);
     setError(null);
 
     try {
@@ -320,7 +323,7 @@ export function DocumentPicker({
     } catch (error) {
       console.error("Failed to start sync:", error);
       setError("Failed to start sync");
-      setSyncing(false);
+      setIsSyncing(false);
     }
   };
 
@@ -499,7 +502,7 @@ export function DocumentPicker({
   const renderContent = () => {
     if (documents.length === 0) {
       if (loading) return <LoadingState message="Loading documents..." />;
-      if (syncing) return <LoadingState message="Syncing documents..." />;
+      if (isSyncing) return <LoadingState message="Syncing documents..." />;
       if (error) return <ErrorState message={error} onRetry={manualSync} />;
     }
     return (
@@ -537,7 +540,7 @@ export function DocumentPicker({
               )}
               <DialogTitle>{integration.name}</DialogTitle>
             </div>
-            {syncing && (
+            {isSyncing && (
               <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
                 <Icons.spinner className="h-3 w-3 animate-spin" />
                 <span>{documents.length} Documents Synced</span>
@@ -552,9 +555,9 @@ export function DocumentPicker({
               value={searchQuery}
               onChange={handleSearchChange}
               className="flex-1"
-              disabled={loading || syncing}
+              disabled={loading || isSyncing}
             />
-            {!loading && !syncing && documents?.length > 0 && (
+            {!loading && !isSyncing && documents?.length > 0 && (
               <Button
                 variant="outline"
                 size="sm"
@@ -573,7 +576,7 @@ export function DocumentPicker({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onCancel} disabled={syncing}>
+          <Button variant="outline" onClick={onCancel} disabled={isSyncing}>
             Cancel
           </Button>
           <Button onClick={handleDone}>Done</Button>
