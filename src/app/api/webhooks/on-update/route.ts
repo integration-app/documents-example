@@ -40,7 +40,7 @@ export async function POST(request: Request) {
       console.log(`Document with id ${fields.id} not found`);
       return NextResponse.json(
         { message: "Document not found" },
-        { status: 404 }
+        { status: 200 }
       );
     }
 
