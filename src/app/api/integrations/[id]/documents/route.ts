@@ -30,8 +30,6 @@ export async function GET(
 
     const documents = await DocumentModel.find(query).lean();
 
-    console.log("Documents:", JSON.stringify(documents, null, 2));
-
     return NextResponse.json({ documents });
   } catch (error) {
     console.error("Failed to fetch documents:", error);
@@ -41,4 +39,3 @@ export async function GET(
     );
   }
 }
-
