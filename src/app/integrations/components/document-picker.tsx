@@ -86,7 +86,7 @@ function DocumentList({
   if (folders.length === 0 && files.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-12">
-        <p className="text-gray-500">This folder is empty</p>
+        <p className="text-gray-500">No items found</p>
       </div>
     );
   }
