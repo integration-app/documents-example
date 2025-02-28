@@ -546,17 +546,7 @@ export function DocumentPicker({
                 <span>{documents.length} Documents Synced</span>
               </div>
             )}
-          </div>
 
-          <div className="flex justify-between items-center gap-4">
-            <Input
-              ref={searchInputRef}
-              placeholder="Search documents..."
-              value={searchQuery}
-              onChange={handleSearchChange}
-              className="flex-1"
-              disabled={loading || isSyncing}
-            />
             {!loading && !isSyncing && documents?.length > 0 && (
               <Button
                 variant="outline"
@@ -568,6 +558,17 @@ export function DocumentPicker({
                 Resync
               </Button>
             )}
+          </div>
+
+          <div className="flex justify-between items-center gap-4">
+            <Input
+              ref={searchInputRef}
+              placeholder="Search documents..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              className="flex-1"
+              disabled={loading || isSyncing}
+            />
           </div>
         </DialogHeader>
 
