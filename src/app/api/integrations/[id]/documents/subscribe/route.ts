@@ -49,24 +49,18 @@ export async function PATCH(
         continue;
       }
 
-      await DocumentModel.updateOne(
-        { connectionId, id: documentId },
-        { $set: { isDownloading: true } }
-      );
+      if (document.canDownload) {
+        await DocumentModel.updateOne(
+          { connectionId, id: documentId },
+          { $set: { isDownloading: true } }
+        );
 
-      /*
-       * Note about folder downloads:
-       * - For Notion integration: documents can always have children, so we allow
-       *   documents with canHaveChildren: true
-       * 
-       * - For other integrations, if we pass a folder to the integration flow, it will fail gracefully
-       *   as folders cannot be downloaded directly
-       */
-      await triggerDownloadDocumentFlow(token, connectionId, documentId);
+        await triggerDownloadDocumentFlow(token, connectionId, documentId);
 
-      console.log(
-        `calling download-document in integration flow for document ${documentId}`
-      );
+        console.log(
+          `calling download-document in integration flow for document ${documentId}`
+        );
+      }
     }
 
     return NextResponse.json({ success: true });

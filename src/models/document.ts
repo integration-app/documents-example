@@ -4,6 +4,7 @@ export interface Document {
   id: string;
   title: string;
   canHaveChildren: boolean;
+  canDownload: boolean;
   resourceURI: string;
   createdAt: string;
   updatedAt: string;
@@ -28,6 +29,7 @@ const documentSchema = new Schema<DocumentWithConnection>(
     id: String,
     title: String,
     canHaveChildren: Boolean,
+    canDownload: Boolean,
     createdAt: String,
     updatedAt: String,
     resourceURI: String,

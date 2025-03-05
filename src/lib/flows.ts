@@ -17,13 +17,15 @@ export async function triggerDownloadDocumentFlow(
   let runResult;
 
   try {
-    runResult = await integrationApp.connection(connectionId).flow("download-document").run({
-      input: {
-        documentId,
-      },
-    });
+    runResult = await integrationApp
+      .connection(connectionId)
+      .flow("download-document")
+      .run({
+        input: {
+          documentId,
+        },
+      });
   } catch (error) {
-
     await DocumentModel.updateOne(
       { id: documentId },
       { $set: { isDownloading: false } }
@@ -33,5 +35,4 @@ export async function triggerDownloadDocumentFlow(
   }
 
   return runResult;
-
 }
