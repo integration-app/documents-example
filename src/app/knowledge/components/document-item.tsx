@@ -59,7 +59,11 @@ export function DocumentItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="text-sm font-medium truncate">{document.title}</p>
-          <span className="text-xs text-gray-400">{document.id}</span>
+          <span className="text-xs text-gray-400">
+            {document.id.length > 24
+              ? `${document.id.slice(0, 12)}...${document.id.slice(-12)}`
+              : document.id}
+          </span>
         </div>
         {document.updatedAt && (
           <p className="text-xs text-gray-500">
