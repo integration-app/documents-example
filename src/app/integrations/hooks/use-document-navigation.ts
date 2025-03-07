@@ -32,25 +32,38 @@ export function useDocumentNavigation(
     );
   }, [documents, searchQuery]);
 
+  // Create a Set of existing document IDs for quick lookup
+  const existingDocumentIds = useMemo(() => {
+    return new Set(documents.map((doc) => doc.id));
+  }, [documents]);
+
   // Get current folders
   const currentFolders = useMemo(() => {
     return filteredDocuments.filter((doc) => {
       if (currentFolderId === null) {
-        return doc.canHaveChildren && !doc.parentId;
+        // Show at root if it has no parent or if its parent doesn't exist
+        return (
+          doc.canHaveChildren &&
+          (!doc.parentId || !existingDocumentIds.has(doc.parentId))
+        );
       }
       return doc.canHaveChildren && doc.parentId === currentFolderId;
     });
-  }, [filteredDocuments, currentFolderId]);
+  }, [filteredDocuments, currentFolderId, existingDocumentIds]);
 
   // Get current files
   const currentFiles = useMemo(() => {
     return filteredDocuments.filter((doc) => {
       if (currentFolderId === null) {
-        return doc.canHaveChildren === false && !doc.parentId;
+        // Show at root if it has no parent or if its parent doesn't exist
+        return (
+          doc.canHaveChildren === false &&
+          (!doc.parentId || !existingDocumentIds.has(doc.parentId))
+        );
       }
       return doc.canHaveChildren === false && doc.parentId === currentFolderId;
     });
-  }, [filteredDocuments, currentFolderId]);
+  }, [filteredDocuments, currentFolderId, existingDocumentIds]);
 
   const navigateToFolder = (folderId: string, folderTitle: string) => {
     setCurrentFolderId(folderId);
