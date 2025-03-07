@@ -522,7 +522,6 @@ export function DocumentPicker({
               value={searchQuery}
               onChange={handleSearchChange}
               className="flex-1"
-              disabled={loading || isSyncing}
             />
           </div>
         </DialogHeader>
