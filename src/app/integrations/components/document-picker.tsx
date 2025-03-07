@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
+import { useDocumentNavigation } from "../hooks/use-document-navigation";
 
 const Icons = {
   file: FileIcon,
@@ -200,10 +201,16 @@ export function DocumentPicker({
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
-  const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([]);
   const [checkedInitialSync, setCheckedInitialSync] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
+
+  const {
+    currentFolders,
+    currentFiles,
+    breadcrumbs,
+    navigateToFolder,
+    navigateToBreadcrumb,
+  } = useDocumentNavigation(documents, searchQuery);
 
   useEffect(() => {
     if (open && integration.connection?.id && !checkedInitialSync) {
@@ -262,11 +269,6 @@ export function DocumentPicker({
         const data = await response.json();
 
         if (data.status === "in_progress") {
-          /*
-           * TODO: Ideally, we only want to fetch only new documents and append that to an array of documents
-           * We'd need to update the knowledge model to include a lastSyncedAt field so
-           * we can fetch only documents that were created after the lastSyncedAt date
-           */
           fetchDocuments();
         }
         if (data.status === "completed") {
@@ -357,68 +359,6 @@ export function DocumentPicker({
     setSearchQuery(e.target.value);
   };
 
-  // Recursively get all documents inside a folder
-  const getDocumentsInFolder = (folderId: string): Document[] => {
-    const result: Document[] = [];
-
-    // Get immediate children
-    const children = documents.filter((doc) => doc.parentId === folderId);
-
-    for (const child of children) {
-      result.push(child);
-      // If child is a folder, get its contents recursively
-      if (child.canHaveChildren) {
-        result.push(...getDocumentsInFolder(child.id));
-      }
-    }
-
-    return result;
-  };
-
-  // Update the folder and file filtering logic
-  const getFilteredDocuments = () => {
-    let filtered = documents;
-
-    if (searchQuery) {
-      const searchLower = searchQuery.toLowerCase();
-      filtered = documents.filter((doc) =>
-        doc.title.toLowerCase().includes(searchLower)
-      );
-    }
-
-    return filtered;
-  };
-
-  // Get folders at current level
-  const currentFolders = getFilteredDocuments().filter((doc) => {
-    if (currentFolderId === null) {
-      // At root level, show documents with no folderId
-      return doc.canHaveChildren && !doc.parentId;
-    }
-    return doc.canHaveChildren && doc.parentId === currentFolderId;
-  });
-
-  // Get documents at current level
-  const currentFiles = getFilteredDocuments().filter((doc) => {
-    if (currentFolderId === null) {
-      // At root level, show documents with no folderId
-      return doc.canHaveChildren === false && !doc.parentId;
-    }
-    return doc.canHaveChildren === false && doc.parentId === currentFolderId;
-  });
-
-  const navigateToFolder = (folderId: string, folderTitle: string) => {
-    setCurrentFolderId(folderId);
-    setBreadcrumbs((prev) => [...prev, { id: folderId, title: folderTitle }]);
-  };
-
-  const navigateToBreadcrumb = (index: number) => {
-    const newBreadcrumbs = breadcrumbs.slice(0, index + 1);
-    const targetFolder = index === -1 ? null : newBreadcrumbs[index].id;
-    setCurrentFolderId(targetFolder);
-    setBreadcrumbs(newBreadcrumbs);
-  };
-
   /**
    * Once a document is toggled, we need to update it's state and all it's children
    * in the local state and then persist the state to the backend.
@@ -487,6 +427,21 @@ export function DocumentPicker({
     } finally {
       setIsSubscribing(false);
     }
+  };
+
+  // Recursively get all documents inside a folder
+  const getDocumentsInFolder = (folderId: string): Document[] => {
+    const result: Document[] = [];
+    const children = documents.filter((doc) => doc.parentId === folderId);
+
+    for (const child of children) {
+      result.push(child);
+      if (child.canHaveChildren) {
+        result.push(...getDocumentsInFolder(child.id));
+      }
+    }
+
+    return result;
   };
 
   const handleDone = () => {
