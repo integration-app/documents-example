@@ -32,10 +32,12 @@ export function useDocumentNavigation(
     );
   }, [documents, searchQuery]);
 
+  console.log("filteredDocuments", filteredDocuments);
+
   // Create a Set of existing document IDs for quick lookup
   const existingDocumentIds = useMemo(() => {
-    return new Set(documents.map((doc) => doc.id));
-  }, [documents]);
+    return new Set(filteredDocuments.map((doc) => doc.id));
+  }, [filteredDocuments]);
 
   // Get current folders
   const currentFolders = useMemo(() => {
