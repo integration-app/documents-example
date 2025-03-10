@@ -16,8 +16,8 @@ import {
 import { toast } from "sonner";
 import { DocumentViewer } from "@/app/knowledge/components/document-viewer";
 import { DocumentItem } from "@/app/knowledge/components/document-item";
+import { IntegrationNav } from "@/app/knowledge/components/integration-nav";
 import Image from "next/image";
-import { cn } from "@/lib/utils";
 
 const Icons = {
   file: FileIcon,
@@ -304,36 +304,14 @@ export default function KnowledgePage() {
     <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-8">Knowledge Base</h1>
 
-      {/* Integration Filter Buttons */}
-      <div className="relative mb-8">
-        <div className="flex gap-2 p-1 bg-gray-100 rounded-lg w-fit">
-          <button
-            onClick={() => setSelectedIntegration(null)}
-            className={cn(
-              "px-4 py-2 rounded-md text-sm font-medium transition-all duration-200",
-              selectedIntegration === null
-                ? "bg-white text-gray-900 shadow-sm"
-                : "text-gray-500 hover:text-gray-900"
-            )}
-          >
-            All
-          </button>
-          {integrationGroups.map((integration) => (
-            <button
-              key={integration.integrationId}
-              onClick={() => setSelectedIntegration(integration.integrationId)}
-              className={cn(
-                "px-4 py-2 rounded-md text-sm font-medium transition-all duration-200",
-                selectedIntegration === integration.integrationId
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-900"
-              )}
-            >
-              {integration.integrationName}
-            </button>
-          ))}
-        </div>
-      </div>
+      <IntegrationNav
+        integrations={integrationGroups.map((group) => ({
+          integrationId: group.integrationId,
+          integrationName: group.integrationName,
+        }))}
+        selectedIntegration={selectedIntegration}
+        onIntegrationSelect={setSelectedIntegration}
+      />
 
       {renderBreadcrumbs()}
 
