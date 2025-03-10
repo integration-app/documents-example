@@ -302,10 +302,10 @@ export default function KnowledgePage() {
 
   return (
     <div className="container mx-auto py-8">
-      <h1 className="text-2xl font-bold mb-6">Knowledge Base</h1>
+      <h1 className="text-3xl font-bold mb-8">Knowledge Base</h1>
 
       {/* Integration Filter Buttons */}
-      <div className="relative mb-6">
+      <div className="relative mb-8">
         <div className="flex gap-2 p-1 bg-gray-100 rounded-lg w-fit">
           <button
             onClick={() => setSelectedIntegration(null)}
@@ -347,7 +347,7 @@ export default function KnowledgePage() {
 
           return (
             <Card key={integration.integrationId} className="shadow-none">
-              <CardHeader>
+              <CardHeader className="pb-4">
                 <div className="flex items-center gap-3">
                   {integration.integrationLogo ? (
                     <Image
@@ -362,7 +362,9 @@ export default function KnowledgePage() {
                       {integration.integrationName[0]}
                     </div>
                   )}
-                  <CardTitle>{integration.integrationName}</CardTitle>
+                  <CardTitle className="text-xl font-semibold text-gray-800">
+                    {integration.integrationName}
+                  </CardTitle>
                 </div>
               </CardHeader>
               <CardContent>
