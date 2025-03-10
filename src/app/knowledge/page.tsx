@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { DocumentViewer } from "@/app/knowledge/components/document-viewer";
 import { DocumentItem } from "@/app/knowledge/components/document-item";
 import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 const Icons = {
   file: FileIcon,
@@ -85,6 +86,9 @@ export default function KnowledgePage() {
     Array<{ id: string; title: string }>
   >([]);
   const [viewingDocument, setViewingDocument] = useState<Document | null>(null);
+  const [selectedIntegration, setSelectedIntegration] = useState<string | null>(
+    null
+  );
 
   // Add polling interval ref
   const pollingInterval = useRef<NodeJS.Timeout | null>(null);
@@ -262,6 +266,13 @@ export default function KnowledgePage() {
     setViewingDocument(document);
   };
 
+  const filteredIntegrationGroups = useMemo(() => {
+    if (!selectedIntegration) return integrationGroups;
+    return integrationGroups.filter(
+      (group) => group.integrationId === selectedIntegration
+    );
+  }, [integrationGroups, selectedIntegration]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -292,10 +303,42 @@ export default function KnowledgePage() {
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-2xl font-bold mb-6">Knowledge Base</h1>
+
+      {/* Integration Filter Buttons */}
+      <div className="relative mb-6">
+        <div className="flex gap-2 p-1 bg-gray-100 rounded-lg w-fit">
+          <button
+            onClick={() => setSelectedIntegration(null)}
+            className={cn(
+              "px-4 py-2 rounded-md text-sm font-medium transition-all duration-200",
+              selectedIntegration === null
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-500 hover:text-gray-900"
+            )}
+          >
+            All
+          </button>
+          {integrationGroups.map((integration) => (
+            <button
+              key={integration.integrationId}
+              onClick={() => setSelectedIntegration(integration.integrationId)}
+              className={cn(
+                "px-4 py-2 rounded-md text-sm font-medium transition-all duration-200",
+                selectedIntegration === integration.integrationId
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-900"
+              )}
+            >
+              {integration.integrationName}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {renderBreadcrumbs()}
 
       <div className="space-y-8">
-        {integrationGroups.map((integration) => {
+        {filteredIntegrationGroups.map((integration) => {
           const currentDocs = getCurrentDocuments(integration.integrationId);
           const folders = currentDocs.filter((doc) => doc.canHaveChildren);
           const files = currentDocs.filter((doc) => !doc.canHaveChildren);
