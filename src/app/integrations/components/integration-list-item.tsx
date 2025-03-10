@@ -80,7 +80,7 @@ export function IntegrationListItem({
 
       const connection = await integrationApp
         .integration(integration.key)
-        .openNewConnection(); 
+        .openNewConnection();
 
       if (!connection?.id) {
         throw new Error("No connection ID received");
@@ -184,6 +184,7 @@ export function IntegrationListItem({
                 onClick={handleDisconnect}
                 size="sm"
                 disabled={isDisconnecting}
+                className="w-[100px]"
               >
                 {isDisconnecting ? (
                   <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
