@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { getAuthHeaders } from "@/app/auth-provider";
 import { Document } from "@/models/document";
@@ -42,6 +42,25 @@ interface DocumentMap {
     [parentId: string]: Document[];
   };
 }
+
+/**
+ * Filters integration groups based on the selected integration ID
+ * @param groups - Array of integration groups to filter
+ * @param selectedId - The ID of the selected integration to filter by
+ * @returns Filtered array of integration groups
+ */
+const filterIntegrationGroups = (
+  groups: IntegrationGroup[],
+  selectedId: string | null
+): IntegrationGroup[] => {
+  // If no integration is selected, return all groups
+  if (!selectedId) {
+    return groups;
+  }
+
+  // Find the matching integration group
+  return groups.filter((group) => group.integrationId === selectedId);
+};
 
 const groupDocuments = (integrationGroups: IntegrationGroup[]) => {
   const documentMap: DocumentMap = {};
@@ -97,6 +116,26 @@ export default function KnowledgePage() {
   const documentMap = useMemo(
     () => groupDocuments(integrationGroups),
     [integrationGroups]
+  );
+
+  /**
+   * Resets all folder-related states when switching integrations
+   */
+  const resetFolderStates = useCallback(() => {
+    setCurrentFolderId(null);
+    setBreadcrumbs([]);
+    setViewingDocument(null);
+  }, []);
+
+  /**
+   * Handles integration selection and resets related states
+   */
+  const handleIntegrationSelect = useCallback(
+    (integrationId: string | null) => {
+      setSelectedIntegration(integrationId);
+      resetFolderStates();
+    },
+    [resetFolderStates]
   );
 
   // Start polling when component mounts
@@ -266,12 +305,10 @@ export default function KnowledgePage() {
     setViewingDocument(document);
   };
 
-  const filteredIntegrationGroups = useMemo(() => {
-    if (!selectedIntegration) return integrationGroups;
-    return integrationGroups.filter(
-      (group) => group.integrationId === selectedIntegration
-    );
-  }, [integrationGroups, selectedIntegration]);
+  const filteredIntegrationGroups = useMemo(
+    () => filterIntegrationGroups(integrationGroups, selectedIntegration),
+    [integrationGroups, selectedIntegration]
+  );
 
   if (loading) {
     return (
@@ -310,7 +347,7 @@ export default function KnowledgePage() {
           integrationName: group.integrationName,
         }))}
         selectedIntegration={selectedIntegration}
-        onIntegrationSelect={setSelectedIntegration}
+        onIntegrationSelect={handleIntegrationSelect}
       />
 
       {renderBreadcrumbs()}
