@@ -27,12 +27,42 @@ export function useDocumentNavigation(
     if (!searchQuery) return documents;
 
     const searchLower = searchQuery.toLowerCase();
-    return documents.filter((doc) =>
+
+    // Find all documents that match the search query
+    const matchingDocuments = documents.filter((doc) =>
       doc.title.toLowerCase().includes(searchLower)
     );
-  }, [documents, searchQuery]);
 
-  console.log("filteredDocuments", filteredDocuments);
+    // If no matches, return empty array
+    if (matchingDocuments.length === 0) return [];
+
+    // Create a map of parent IDs to their children for quick lookup
+    const parentMap = new Map<string, Document[]>();
+    documents.forEach((doc) => {
+      if (doc.parentId) {
+        const children = parentMap.get(doc.parentId) || [];
+        children.push(doc);
+        parentMap.set(doc.parentId, children);
+      }
+    });
+
+    // Get all child documents recursively
+    const getAllChildren = (docId: string): Document[] => {
+      const children = parentMap.get(docId) || [];
+      return children.reduce((acc, child) => {
+        acc.push(child, ...getAllChildren(child.id));
+        return acc;
+      }, [] as Document[]);
+    };
+
+    // Get all children of matching folders
+    const childDocuments = matchingDocuments
+      .filter((doc) => doc.canHaveChildren)
+      .flatMap((doc) => getAllChildren(doc.id));
+
+    // Combine matching documents with their children, removing duplicates
+    return [...new Set([...matchingDocuments, ...childDocuments])];
+  }, [documents, searchQuery]);
 
   // Create a Set of existing document IDs for quick lookup
   const existingDocumentIds = useMemo(() => {
