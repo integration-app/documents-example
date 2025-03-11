@@ -21,15 +21,7 @@ const onDownloadCompleteWebhookPayloadSchema = z.object({
     ])
     .optional(),
   documentId: z.string(),
-  text: z
-    .union([
-      z.string().min(1),
-      z
-        .string()
-        .length(0)
-        .transform(() => undefined),
-    ])
-    .optional(),
+  text: z.string().optional(),
   connectionId: z.string(),
 });
 
@@ -84,17 +76,12 @@ export async function POST(request: Request) {
         {
           $set: {
             lastSyncedAt: new Date().toISOString(),
-            isDownloading: false,
             ...updateData,
           },
         },
         { new: true }
       );
-
-      return NextResponse.json({ success: true }, { status: 200 });
-    }
-
-    if (downloadURI) {
+    } else if (downloadURI) {
       let buffer: Buffer | undefined;
       let newStorageKey: string | undefined;
 
@@ -129,7 +116,6 @@ export async function POST(request: Request) {
           {
             $set: {
               lastSyncedAt: new Date().toISOString(),
-              isDownloading: false,
               ...updateData,
             },
           },
@@ -173,9 +159,18 @@ export async function POST(request: Request) {
           console.log("DOCUMENT UPDATED WITH EXTRACTED TEXT");
         }
       }
-
-      return NextResponse.json({ success: true }, { status: 200 });
     }
+    
+    await DocumentModel.findOneAndUpdate(
+      { connectionId, id: documentId },
+      {
+        $set: {
+          isDownloading: false,
+        },
+      }
+    );
+
+    return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
     console.error("Failed to process webhook:", error);
     return NextResponse.json(
