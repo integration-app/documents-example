@@ -29,6 +29,8 @@ export async function POST(
     await connectDB();
 
     // Start fresh sync by clearing old data
+    await DocumentModel.deleteMany({ connectionId });
+
     await KnowledgeModel.findOneAndUpdate(
       { connectionId },
       {
@@ -39,7 +41,6 @@ export async function POST(
           integrationLogo,
           syncStatus: "in_progress",
           syncStartedAt: new Date(),
-          documents: [], // Clear existing documents
         },
       },
       { upsert: true }
