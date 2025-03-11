@@ -183,7 +183,7 @@ export function IntegrationListItem({
                 variant="ghost"
                 onClick={handleDisconnect}
                 size="sm"
-                disabled={isDisconnecting}
+                disabled={isDisconnecting || isSyncing }
                 className="w-[100px]"
               >
                 {isDisconnecting ? (
