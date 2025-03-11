@@ -20,14 +20,22 @@ const s3Client = new S3Client({
  * @param s3Key - The key (path) where the file will be stored in S3
  * @returns Promise<string> - The S3 URL where the file was uploaded
  */
-export async function processAndUploadFileToS3(downloadURI: string, s3Key: string) {
+export async function processAndUploadFileToS3(
+  downloadURI: string,
+  s3Key: string
+) {
   const { buffer, extension, contentType } = await downloadFile(downloadURI);
 
-  const keyWithExtension = await uploadToS3(s3Key, buffer, extension ?? "", contentType);
+  const keyWithExtension = await uploadToS3(
+    s3Key,
+    buffer,
+    extension ?? "",
+    contentType
+  );
 
   return {
     keyWithExtension,
-    buffer  
+    buffer,
   };
 }
 
@@ -79,3 +87,9 @@ export async function deleteFileFromS3(key: string) {
 
   await s3Client.send(command);
 }
+
+export const hasAWSCredentials =
+  !!process.env.AWS_ACCESS_KEY_ID &&
+  !!process.env.AWS_SECRET_ACCESS_KEY &&
+  !!process.env.AWS_BUCKET_NAME &&
+  !!process.env.AWS_REGION;

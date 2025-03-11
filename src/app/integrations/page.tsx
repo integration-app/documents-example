@@ -8,7 +8,8 @@ export default function Integrations() {
           Integrations
         </h1>
         <p className="text-gray-500">
-          Connect your accounts to import your data into your knowledge base.
+          Import data from various sources and configure specific folders or
+          files to track for updates.
         </p>
       </div>
       <IntegrationList />

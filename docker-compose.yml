@@ -1,8 +1,8 @@
-version: '3.8'
+version: "3.8"
 services:
   mongodb:
     image: mongo:latest
-    container_name: knowledge-mongodb
+    container_name: document-example-mongodb
     ports:
       - "27017:27017"
     environment:
@@ -12,4 +12,4 @@ services:
       - mongodb_data:/data/db
 
 volumes:
-  mongodb_data: 
+  mongodb_data:

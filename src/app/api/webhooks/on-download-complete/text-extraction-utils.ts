@@ -70,6 +70,9 @@ const extractTextFromFile = async ({
   }
 };
 
+const hasUnstructuredCredentials = key && url;
+
 export const Unstructured = {
   extractTextFromFile,
+  hasUnstructuredCredentials,
 };

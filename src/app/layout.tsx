@@ -5,17 +5,17 @@ import { IntegrationProvider } from "./integration-provider";
 import { AuthProvider } from "./auth-provider";
 import { Toaster } from "sonner";
 import { Instrument_Sans } from "next/font/google";
+import type { Metadata } from "next";
 
 const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
 });
 
-export const metadata = {
+export const metadata: Metadata = {
   title: {
-    default: "Use Case Template",
-    template: "%s | Use Case Template",
+    default: "Document Example",
+    template: "%s | Document Example",
   },
-  description: "Integration.app use case template application",
 };
 
 export default function RootLayout({

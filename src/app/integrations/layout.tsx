@@ -1,7 +1,7 @@
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Integrations",
+  title: "All Integrations",
 }
 
 export default function IntegrationsLayout({

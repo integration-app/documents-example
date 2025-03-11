@@ -4,6 +4,7 @@ import { DocumentModel } from "@/models/document";
 import { getAuthFromRequest } from "@/lib/server-auth";
 import { generateIntegrationToken } from "@/lib/integration-token";
 import { triggerDownloadDocumentFlow } from "@/lib/flows";
+import { hasAWSCredentials } from "@/lib/s3-utils";
 
 export async function PATCH(
   request: NextRequest,
@@ -49,7 +50,7 @@ export async function PATCH(
         continue;
       }
 
-      if (document.canDownload) {
+      if (document.canDownload && hasAWSCredentials) {
         await DocumentModel.updateOne(
           { connectionId, id: documentId },
           { $set: { isDownloading: true } }

@@ -1,19 +1,27 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { useAuth } from "@/app/auth-provider"
+import { useState } from "react";
+import { useAuth } from "@/app/auth-provider";
+import Link from "next/link";
 
 export function AuthTest() {
-  const { customerId, customerName, setCustomerName } = useAuth()
-  const [nameInput, setNameInput] = useState("")
+  const { customerId, customerName, setCustomerName } = useAuth();
+  const [nameInput, setNameInput] = useState("");
 
   return (
     <div className="p-4 bg-gray-100 dark:bg-gray-800 rounded-lg space-y-4">
       <div>
         <h2 className="text-lg font-semibold mb-2">Test Customer</h2>
         <p className="text-sm text-gray-600 dark:text-gray-400 italic mb-4">
-          This customer id and name will be used to connect external apps and
-          run integrations.
+          To run integrations on behalf of a user your need a{" "}
+          <Link href="https://console.integration.app/docs/getting-started/authentication">
+            token
+          </Link>
+          , this customer id and name will be used to generate a token on the
+          server. See{" "}
+          <Link href="https://github.com/integration-app/documents-example/blob/6f0c8403e4e2f8b30901f23f6d3f781c4d6437f3/src/lib/integration-token.ts">
+            code example{" "}
+          </Link>
         </p>
         <p className="font-mono text-sm">
           Customer ID: {customerId || "Loading..."}
@@ -32,8 +40,8 @@ export function AuthTest() {
         <button
           onClick={() => {
             if (nameInput.trim()) {
-              setCustomerName(nameInput.trim())
-              setNameInput("")
+              setCustomerName(nameInput.trim());
+              setNameInput("");
             }
           }}
           className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
@@ -42,5 +50,5 @@ export function AuthTest() {
         </button>
       </div>
     </div>
-  )
+  );
 }

@@ -1,10 +1,10 @@
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Users",
+  title: "Knowledge Base",
 }
 
-export default function UsersLayout({
+export default function KnowledgeLayout({
   children,
 }: {
   children: React.ReactNode

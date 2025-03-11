@@ -137,6 +137,7 @@ export async function POST(request: Request) {
         );
 
       if (
+        Unstructured.hasUnstructuredCredentials &&
         documentAfterDownloadStatusIsUpdated?.storageKey &&
         UnstructuredIsEnabled &&
         buffer
@@ -175,7 +176,6 @@ export async function POST(request: Request) {
 
       return NextResponse.json({ success: true }, { status: 200 });
     }
-
   } catch (error) {
     console.error("Failed to process webhook:", error);
     return NextResponse.json(
