@@ -42,9 +42,7 @@ This application relies on predefined [flows](https://console.integration.app/do
 To use the same flow and actions in your workspace, navigate to the [Continuously Import Content to My App Scenario](https://integration.app/scenarios/continuously-import-content-to-my-app) and click the **"Add to App"** button. This will add the required flows and actions, data sources and other primitives to your workspace.
 
 ### 5. Configure your apps
-This Scenario works across 8 apps. For most app to work you'll need to provide configuration parameters. The configuration guide for each apps explains how to get the credentials needed
-
-
+The [Continuously Import Content to My App Scenario](https://integration.app/scenarios/continuously-import-content-to-my-app) adds **8 apps** to your workspace and for most apps to work, you'll need to provide configuration parameters. The configuration guide for each apps explains how to get the credentials needed. See video below for an overview of the configuration process:
 
 https://github.com/user-attachments/assets/272197b4-aea9-40ff-a444-ac0fa17f672f
 
