@@ -456,7 +456,8 @@ export function DocumentPicker({
 
   const renderContent = () => {
     if (documents.length === 0) {
-      if (loading) return <LoadingState message="Loading documents..." />;
+      if (loading && !isSyncing)
+        return <LoadingState message="Loading documents..." />;
       if (isSyncing) return <LoadingState message="Syncing documents..." />;
       if (error) return <ErrorState message={error} onRetry={manualSync} />;
     }
