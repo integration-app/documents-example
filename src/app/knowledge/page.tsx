@@ -2,15 +2,51 @@
 
 import { useState, useMemo } from "react";
 import { getAuthHeaders } from "@/app/auth-provider";
-import { Loader2Icon } from "lucide-react";
 import { IntegrationNav } from "@/app/knowledge/components/integration-nav";
 import { IntegrationCard } from "@/app/knowledge/components/integration-card";
 import { filterIntegrationGroups, type IntegrationGroup } from "./utils";
 import useSWR from "swr";
 
-const Icons = {
-  spinner: Loader2Icon,
-} as const;
+function LoadingSkeleton() {
+  return (
+    <div className="container mx-auto py-8 animate-in fade-in-50">
+      <div className="h-10 w-48 bg-gray-200 rounded-md mb-8 animate-pulse" />
+
+      {/* Navigation skeleton */}
+      <div className="flex gap-2 mb-8">
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className="h-8 w-32 bg-gray-200 rounded-md animate-pulse"
+          />
+        ))}
+      </div>
+
+      {/* Integration cards skeleton */}
+      <div className="space-y-8">
+        {[1, 2].map((i) => (
+          <div key={i} className="border rounded-lg p-6 space-y-4">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 bg-gray-200 rounded-md animate-pulse" />
+              <div className="flex-1 space-y-2">
+                <div className="h-5 w-48 bg-gray-200 rounded-md animate-pulse" />
+                <div className="h-4 w-32 bg-gray-200 rounded-md animate-pulse" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[1, 2, 3].map((j) => (
+                <div
+                  key={j}
+                  className="h-24 bg-gray-200 rounded-md animate-pulse"
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 const fetcher = async (url: string) => {
   const response = await fetch(url, {
@@ -45,11 +81,7 @@ export default function KnowledgePage() {
   );
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Icons.spinner className="h-8 w-8 animate-spin" />
-      </div>
-    );
+    return <LoadingSkeleton />;
   }
 
   if (error) {
