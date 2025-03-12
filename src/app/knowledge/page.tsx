@@ -1,98 +1,15 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo, useCallback } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { getAuthHeaders } from "@/app/auth-provider";
-import { Document } from "@/models/document";
-import {
-  FileIcon,
-  FolderIcon,
-  ExternalLinkIcon,
-  Loader2Icon,
-  ChevronRightIcon,
-  DownloadIcon,
-  RefreshCwIcon,
-} from "lucide-react";
-import { toast } from "sonner";
-import { DocumentViewer } from "@/app/knowledge/components/document-viewer";
-import { DocumentItem } from "@/app/knowledge/components/document-item";
+import { Loader2Icon } from "lucide-react";
 import { IntegrationNav } from "@/app/knowledge/components/integration-nav";
-import Image from "next/image";
+import { IntegrationCard } from "@/app/knowledge/components/integration-card";
+import { filterIntegrationGroups, type IntegrationGroup } from "./utils";
 
 const Icons = {
-  file: FileIcon,
-  folder: FolderIcon,
-  chevronRight: ChevronRightIcon,
-  externalLink: ExternalLinkIcon,
   spinner: Loader2Icon,
-  download: DownloadIcon,
-  refresh: RefreshCwIcon,
 } as const;
-
-interface IntegrationGroup {
-  connectionId: string;
-  integrationId: string;
-  integrationName: string;
-  integrationLogo: string;
-  documents: Document[];
-}
-
-interface DocumentMap {
-  [connectionId: string]: {
-    [parentId: string]: Document[];
-  };
-}
-
-/**
- * Filters integration groups based on the selected integration ID
- * @param groups - Array of integration groups to filter
- * @param selectedId - The ID of the selected integration to filter by
- * @returns Filtered array of integration groups
- */
-const filterIntegrationGroups = (
-  groups: IntegrationGroup[],
-  selectedId: string | null
-): IntegrationGroup[] => {
-  // If no integration is selected, return all groups
-  if (!selectedId) {
-    return groups;
-  }
-
-  // Find the matching integration group
-  return groups.filter((group) => group.integrationId === selectedId);
-};
-
-const groupDocuments = (integrationGroups: IntegrationGroup[]) => {
-  const documentMap: DocumentMap = {};
-
-  integrationGroups.forEach((group) => {
-    // Create a lookup of all documents in this group
-    const documentLookup = group.documents.reduce((acc, doc) => {
-      acc[doc.id] = doc;
-      return acc;
-    }, {} as { [key: string]: Document });
-
-    // Initialize the connection's document map
-    documentMap[group.connectionId] = {
-      root: [],
-    };
-
-    // Group documents by parent
-    group.documents.forEach((doc) => {
-      if (doc.parentId && documentLookup[doc.parentId]) {
-        if (!documentMap[group.connectionId][doc.parentId]) {
-          documentMap[group.connectionId][doc.parentId] = [];
-        }
-        documentMap[group.connectionId][doc.parentId].push(doc);
-      } else {
-        // If no valid parentId, add to root
-        documentMap[group.connectionId].root.push(doc);
-      }
-    });
-  });
-
-  return documentMap;
-};
 
 export default function KnowledgePage() {
   const [loading, setLoading] = useState(true);
@@ -100,51 +17,15 @@ export default function KnowledgePage() {
   const [integrationGroups, setIntegrationGroups] = useState<
     IntegrationGroup[]
   >([]);
-  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
-  const [breadcrumbs, setBreadcrumbs] = useState<
-    Array<{ id: string; title: string }>
-  >([]);
-  const [viewingDocument, setViewingDocument] = useState<Document | null>(null);
   const [selectedIntegration, setSelectedIntegration] = useState<string | null>(
     null
   );
-
-  // Add polling interval ref
   const pollingInterval = useRef<NodeJS.Timeout | null>(null);
-
-  // Add memoized documentMap
-  const documentMap = useMemo(
-    () => groupDocuments(integrationGroups),
-    [integrationGroups]
-  );
-
-  /**
-   * Resets all folder-related states when switching integrations
-   */
-  const resetFolderStates = useCallback(() => {
-    setCurrentFolderId(null);
-    setBreadcrumbs([]);
-    setViewingDocument(null);
-  }, []);
-
-  /**
-   * Handles integration selection and resets related states
-   */
-  const handleIntegrationSelect = useCallback(
-    (integrationId: string | null) => {
-      setSelectedIntegration(integrationId);
-      resetFolderStates();
-    },
-    [resetFolderStates]
-  );
 
   // Start polling when component mounts
   useEffect(() => {
     const startPolling = () => {
-      // Initial fetch
       fetchSubscribedDocuments();
-
-      // Set up polling every 2 seconds
       pollingInterval.current = setInterval(() => {
         fetchSubscribedDocuments();
       }, 2000);
@@ -157,51 +38,6 @@ export default function KnowledgePage() {
   const stopPolling = () => {
     if (pollingInterval.current) {
       clearInterval(pollingInterval.current);
-    }
-  };
-
-  const downloadFileToDisk = async (docId: string, storageKey: string) => {
-    try {
-      const response = await fetch(
-        `/api/documents/${docId}/stream?storageKey=${storageKey}`,
-        {
-          headers: getAuthHeaders(),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to download document");
-      }
-
-      // Get filename from content-disposition header or use a default
-      const contentDisposition = response.headers.get("content-disposition");
-      let filename = "document";
-      if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-        if (filenameMatch) {
-          filename = filenameMatch[1];
-        }
-      }
-
-      // Create blob from the stream
-      const blob = await response.blob();
-
-      // Create a download link and trigger it
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-
-      // Cleanup
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(link);
-
-      toast.success("Document downloaded successfully");
-    } catch (error) {
-      console.error("Download error:", error);
-      toast.error("Failed to download document");
     }
   };
 
@@ -220,7 +56,6 @@ export default function KnowledgePage() {
       }
 
       const groups: IntegrationGroup[] = await response.json();
-
       setIntegrationGroups(groups);
     } catch (error) {
       console.error("Error fetching documents:", error);
@@ -234,76 +69,9 @@ export default function KnowledgePage() {
     }
   };
 
-  const getCurrentDocuments = (integrationId: string): Document[] => {
-    // Find the integration group that matches this ID
-    const integration = integrationGroups.find(
-      (group) => group.integrationId === integrationId
-    );
-    if (!integration) {
-      return [];
-    }
-
-    // Find the connection ID for this integration
-    const { connectionId } = integration;
-    if (!connectionId || !documentMap[connectionId]) {
-      return [];
-    }
-
-    // If no folder is selected, return root documents
-    if (currentFolderId === null) {
-      return documentMap[connectionId].root || [];
-    }
-
-    // Return documents for the current folder
-    return documentMap[connectionId][currentFolderId] || [];
-  };
-
-  // Update initial fetch to show loading state
   useEffect(() => {
     fetchSubscribedDocuments(true);
   }, []);
-
-  const navigateToFolder = (folderId: string, folderTitle: string) => {
-    setCurrentFolderId(folderId);
-    setBreadcrumbs((prev) => [...prev, { id: folderId, title: folderTitle }]);
-  };
-
-  const navigateToBreadcrumb = (index: number) => {
-    const newBreadcrumbs = breadcrumbs.slice(0, index + 1);
-    const targetFolder = index === -1 ? null : newBreadcrumbs[index].id;
-    setCurrentFolderId(targetFolder);
-    setBreadcrumbs(newBreadcrumbs);
-  };
-
-  const renderBreadcrumbs = () => {
-    if (breadcrumbs.length === 0) return null;
-
-    return (
-      <div className="flex items-center flex-wrap gap-2 mb-4 text-sm text-gray-500">
-        <button
-          onClick={() => navigateToBreadcrumb(-1)}
-          className="hover:text-gray-900 transition-colors"
-        >
-          All Documents
-        </button>
-        {breadcrumbs.map((crumb, index) => (
-          <div key={crumb.id} className="flex items-center gap-2">
-            <Icons.chevronRight className="h-4 w-4 text-gray-400" />
-            <button
-              onClick={() => navigateToBreadcrumb(index)}
-              className="hover:text-gray-900 transition-colors"
-            >
-              {crumb.title}
-            </button>
-          </div>
-        ))}
-      </div>
-    );
-  };
-
-  const onClickViewContent = (document: Document) => {
-    setViewingDocument(document);
-  };
 
   const filteredIntegrationGroups = useMemo(
     () => filterIntegrationGroups(integrationGroups, selectedIntegration),
@@ -347,77 +115,21 @@ export default function KnowledgePage() {
           integrationName: group.integrationName,
         }))}
         selectedIntegration={selectedIntegration}
-        onIntegrationSelect={handleIntegrationSelect}
+        onIntegrationSelect={setSelectedIntegration}
       />
 
-      {renderBreadcrumbs()}
-
       <div className="space-y-8">
-        {filteredIntegrationGroups.map((integration) => {
-          const currentDocs = getCurrentDocuments(integration.integrationId);
-          const folders = currentDocs.filter((doc) => doc.canHaveChildren);
-          const files = currentDocs.filter((doc) => !doc.canHaveChildren);
-
-          if (currentDocs.length === 0) return null;
-
-          return (
-            <Card key={integration.integrationId} className="shadow-none">
-              <CardHeader className="pb-4">
-                <div className="flex items-center gap-3">
-                  {integration.integrationLogo ? (
-                    <Image
-                      src={integration.integrationLogo}
-                      alt={`${integration.integrationName} logo`}
-                      width={32}
-                      height={32}
-                      className="rounded-lg"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                      {integration.integrationName[0]}
-                    </div>
-                  )}
-                  <CardTitle className="text-xl font-semibold text-gray-800">
-                    {integration.integrationName}
-                  </CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {folders.map((doc) => (
-                    <DocumentItem
-                      integrationName={integration.integrationName}
-                      key={doc.id}
-                      document={doc}
-                      onItemClick={navigateToFolder}
-                      onClickViewContent={onClickViewContent}
-                    />
-                  ))}
-
-                  {files.map((doc) => (
-                    <DocumentItem
-                      integrationName={integration.integrationName}
-                      key={doc.id}
-                      document={doc}
-                      onClickViewContent={onClickViewContent}
-                      onDownload={downloadFileToDisk}
-                    />
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+        {filteredIntegrationGroups.map((integration) => (
+          <IntegrationCard
+            key={integration.integrationId}
+            connectionId={integration.connectionId}
+            integrationId={integration.integrationId}
+            integrationName={integration.integrationName}
+            integrationLogo={integration.integrationLogo}
+            documents={integration.documents}
+          />
+        ))}
       </div>
-
-      {viewingDocument && (
-        <DocumentViewer
-          documentId={viewingDocument.id}
-          title={viewingDocument.title}
-          open={viewingDocument !== null}
-          onOpenChange={(open) => !open && setViewingDocument(null)}
-        />
-      )}
     </div>
   );
 }

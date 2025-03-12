@@ -115,6 +115,6 @@ export function useDocumentNavigation(
     breadcrumbs,
     currentFolderId,
     navigateToFolder,
-    navigateToBreadcrumb,
+    navigateToBreadcrumb
   };
 }

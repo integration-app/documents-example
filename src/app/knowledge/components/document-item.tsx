@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { downloadFileToDisk } from "../utils";
 
 const Icons = {
   file: FileIcon,
@@ -24,7 +25,6 @@ interface DocumentItemProps {
   document: Document;
   onItemClick?: (id: string, title: string) => void;
   onClickViewContent?: (document: Document) => void;
-  onDownload?: (docId: string, storageKey: string) => void;
   integrationName: string;
 }
 
@@ -33,7 +33,6 @@ export function DocumentItem({
   integrationName,
   onItemClick: onFolderClick,
   onClickViewContent,
-  onDownload,
 }: DocumentItemProps) {
   const isFolder = document.canHaveChildren;
 
@@ -110,7 +109,7 @@ export function DocumentItem({
                     size="sm"
                     onClick={(e) => {
                       e.stopPropagation();
-                      onDownload?.(document.id, document.storageKey!);
+                      downloadFileToDisk(document.id, document.storageKey!);
                     }}
                     className="h-8 w-8 p-0"
                     title="Download document"
