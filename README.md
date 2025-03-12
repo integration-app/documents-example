@@ -65,9 +65,14 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 - Docker and Docker Compose installed on your machine
 
+### Todos
+- [ ] Get events working for all apps
+
 ### Setting up MongoDB
 
 If you want to use MongoDB via Docker, you can do so by running the following command:
+
+
 
 
 ```bash
