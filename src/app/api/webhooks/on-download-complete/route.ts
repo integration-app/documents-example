@@ -115,6 +115,7 @@ export async function POST(request: Request) {
           { connectionId, id: documentId },
           {
             $set: {
+              isDownloading: false,
               lastSyncedAt: new Date().toISOString(),
               ...updateData,
             },
