@@ -6,16 +6,21 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Settings } from "lucide-react";
 import { DocumentPicker } from "@/app/integrations/components/document-picker";
-import { usePolling } from "@/hooks/use-polling";
 import { getAuthHeaders } from "@/app/auth-provider";
 import Image from "next/image";
 import { useIntegrationApp } from "@integration-app/react";
 import { Icons } from "@/components/ui/icons";
 import { toast } from "sonner";
+import { startSync } from "@/lib/integration-api";
+import useSWR from "swr";
 
 interface IntegrationListItemProps {
   integration: Integration;
   onRefresh: () => Promise<void>;
+}
+
+interface SyncStatus {
+  status: "in_progress" | "completed" | "failed";
 }
 
 export function IntegrationListItem({
@@ -29,48 +34,53 @@ export function IntegrationListItem({
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
-  const { startPolling, stopPolling } = usePolling({
-    url: `/api/integrations/${integration.connection?.id}/sync-status`,
-    interval: 2000,
-    onSuccess: (data) => {
-      if (data.status === "completed" || data.status === "failed") {
-        stopPolling();
-        setIsSyncing(false);
-
-        if (data.status === "completed") {
-          setIsPickerOpen(true);
-        }
-      }
+  const { mutate: mutateSyncStatus } = useSWR<SyncStatus>(
+    integration.connection?.id
+      ? `/api/integrations/${integration.connection.id}/sync-status`
+      : null,
+    async (url) => {
+      const response = await fetch(url, { headers: getAuthHeaders() });
+      if (!response.ok) throw new Error("Failed to fetch sync status");
+      return response.json();
     },
-  });
+    {
+      refreshInterval: isSyncing ? 2000 : 0,
+      onSuccess: (data) => {
+        if (data.status === "in_progress") {
+          setIsSyncing(true);
+        }
+        if (data.status === "completed" || data.status === "failed") {
+          setIsSyncing(false);
+        }
+      },
+      onError: (error) => {
+        console.error("Error fetching sync status:", error);
+        setIsSyncing(false);
+      },
+    }
+  );
 
-  const startSync = async ({ connectionId }: { connectionId: string }) => {
+  const handleStartSync = async ({
+    connectionId,
+  }: {
+    connectionId: string;
+  }) => {
     setIsSyncing(true);
 
     try {
-      await fetch(`/api/integrations/${connectionId}/sync`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify({
-          integrationId: integration.key,
-          integrationName: integration.name,
-          integrationLogo: integration.logoUri,
-        }),
+      await startSync(connectionId, {
+        key: integration.key,
+        name: integration.name,
+        logoUri: integration.logoUri,
       });
 
-      // We want to check at interval of 2 seconds if the sync is completed
-      startPolling();
-
-      await onRefresh();
+      // Trigger immediate revalidation of sync status
+      mutateSyncStatus();
     } catch (error) {
+      setIsSyncing(false);
       toast.error("Failed to sync documents", {
         description: error instanceof Error ? error.message : "Unknown error",
       });
-    } finally {
-      setIsSyncing(false);
     }
   };
 
@@ -87,8 +97,7 @@ export function IntegrationListItem({
       }
 
       setIsConnecting(false);
-
-      await startSync({ connectionId: connection.id });
+      await handleStartSync({ connectionId: connection.id });
     } catch (error) {
       setIsConnecting(false);
 
@@ -124,18 +133,20 @@ export function IntegrationListItem({
 
   return (
     <>
-      <DocumentPicker
-        isSyncing={isSyncing}
-        integration={integration}
-        onComplete={() => {
-          setIsPickerOpen(false);
-          router.push("/knowledge");
-        }}
-        onCancel={() => setIsPickerOpen(false)}
-        open={isPickerOpen}
-        onOpenChange={setIsPickerOpen}
-        setIsSyncing={setIsSyncing}
-      />
+      {isPickerOpen && (
+        <DocumentPicker
+          isSyncing={isSyncing}
+          integration={integration}
+          onComplete={() => {
+            setIsPickerOpen(false);
+            router.push("/knowledge");
+          }}
+          onCancel={() => setIsPickerOpen(false)}
+          open={isPickerOpen}
+          onOpenChange={setIsPickerOpen}
+          handleStartSync={handleStartSync}
+        />
+      )}
 
       <div className="flex items-center justify-between p-4 pl-0 bg-white rounded-lg border-b">
         <div className="flex items-center gap-4">
@@ -183,7 +194,7 @@ export function IntegrationListItem({
                 variant="ghost"
                 onClick={handleDisconnect}
                 size="sm"
-                disabled={isDisconnecting || isSyncing }
+                disabled={isDisconnecting || isSyncing}
                 className="w-[100px]"
               >
                 {isDisconnecting ? (

@@ -1,84 +1,50 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { getAuthHeaders } from "@/app/auth-provider";
 import { Loader2Icon } from "lucide-react";
 import { IntegrationNav } from "@/app/knowledge/components/integration-nav";
 import { IntegrationCard } from "@/app/knowledge/components/integration-card";
 import { filterIntegrationGroups, type IntegrationGroup } from "./utils";
+import useSWR from "swr";
 
 const Icons = {
   spinner: Loader2Icon,
 } as const;
 
+const fetcher = async (url: string) => {
+  const response = await fetch(url, {
+    headers: getAuthHeaders(),
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch documents");
+  }
+
+  return response.json();
+};
+
 export default function KnowledgePage() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [integrationGroups, setIntegrationGroups] = useState<
-    IntegrationGroup[]
-  >([]);
   const [selectedIntegration, setSelectedIntegration] = useState<string | null>(
     null
   );
-  const pollingInterval = useRef<NodeJS.Timeout | null>(null);
 
-  // Start polling when component mounts
-  useEffect(() => {
-    const startPolling = () => {
-      fetchSubscribedDocuments();
-      pollingInterval.current = setInterval(() => {
-        fetchSubscribedDocuments();
-      }, 2000);
-    };
-
-    startPolling();
-    return () => stopPolling();
-  }, []);
-
-  const stopPolling = () => {
-    if (pollingInterval.current) {
-      clearInterval(pollingInterval.current);
-    }
-  };
-
-  const fetchSubscribedDocuments = async (showLoadingState = false) => {
-    try {
-      if (showLoadingState) {
-        setLoading(true);
-      }
-
-      const response = await fetch("/api/documents/subscribed", {
-        headers: getAuthHeaders(),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch documents");
-      }
-
-      const groups: IntegrationGroup[] = await response.json();
-      setIntegrationGroups(groups);
-    } catch (error) {
-      console.error("Error fetching documents:", error);
-      if (showLoadingState) {
-        setError("Failed to load documents");
-      }
-    } finally {
-      if (showLoadingState) {
-        setLoading(false);
-      }
-    }
-  };
-
-  useEffect(() => {
-    fetchSubscribedDocuments(true);
-  }, []);
+  const {
+    data: integrationGroups = [],
+    error,
+    isLoading,
+  } = useSWR<IntegrationGroup[]>("/api/documents/subscribed", fetcher, {
+    refreshInterval: 2000,
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
+  });
 
   const filteredIntegrationGroups = useMemo(
     () => filterIntegrationGroups(integrationGroups, selectedIntegration),
     [integrationGroups, selectedIntegration]
   );
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <Icons.spinner className="h-8 w-8 animate-spin" />
@@ -89,7 +55,9 @@ export default function KnowledgePage() {
   if (error) {
     return (
       <div className="container mx-auto py-8">
-        <div className="p-4 text-red-500 bg-red-50 rounded-md">{error}</div>
+        <div className="p-4 text-red-500 bg-red-50 rounded-md">
+          Failed to load documents
+        </div>
       </div>
     );
   }

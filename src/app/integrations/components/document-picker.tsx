@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { getAuthHeaders } from "@/app/auth-provider";
@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner";
 import Image from "next/image";
 import { useDocumentNavigation } from "../hooks/use-document-navigation";
+import useSWR from "swr";
 
 const Icons = {
   file: FileIcon,
@@ -183,8 +184,46 @@ interface DocumentPickerProps {
   onCancel: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  setIsSyncing: (syncing: boolean) => void;
   isSyncing: boolean;
+  handleStartSync: (params: { connectionId: string }) => Promise<void>;
+}
+
+function useDocumentSync(connectionId: string | undefined, isSyncing: boolean) {
+  type DocumentResponse = {
+    documents: Document[];
+  };
+
+  const {
+    data: documents = [],
+    error,
+    isLoading,
+    mutate,
+  } = useSWR<Document[]>(
+    connectionId ? `/api/integrations/${connectionId}/documents` : null,
+    async (url: string) => {
+      const response = await fetch(url, { headers: getAuthHeaders() });
+      if (!response.ok) {
+        throw new Error("Failed to fetch documents");
+      }
+      const data = (await response.json()) as DocumentResponse;
+      return data.documents || [];
+    },
+    {
+      refreshInterval: isSyncing ? 2000 : 0,
+      revalidateOnFocus: !isSyncing,
+      onError: (err: Error) => {
+        console.error("Error fetching documents:", err);
+      },
+    }
+  );
+
+  return {
+    documents,
+    setDocuments: (newDocuments: Document[]) => mutate(newDocuments, false),
+    loading: isLoading,
+    error: error?.message || null,
+    fetchDocuments: () => mutate(),
+  };
 }
 
 export function DocumentPicker({
@@ -193,16 +232,17 @@ export function DocumentPicker({
   onCancel,
   open,
   onOpenChange,
-  setIsSyncing,
   isSyncing,
+  handleStartSync,
 }: DocumentPickerProps) {
-  const [documents, setDocuments] = useState<Document[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const [checkedInitialSync, setCheckedInitialSync] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
+
+  const { documents, setDocuments, loading, error } = useDocumentSync(
+    integration.connection?.id,
+    isSyncing
+  );
 
   const {
     currentFolders,
@@ -211,149 +251,6 @@ export function DocumentPicker({
     navigateToFolder,
     navigateToBreadcrumb,
   } = useDocumentNavigation(documents, searchQuery);
-
-  useEffect(() => {
-    if (open && integration.connection?.id && !checkedInitialSync) {
-      checkSyncStatus();
-    }
-  }, [open, integration.connection?.id, checkedInitialSync]);
-
-  // Effect for initial load only
-  useEffect(() => {
-    if (open && integration.connection?.id) {
-      fetchDocuments();
-    }
-  }, [open, integration.connection?.id]);
-
-  const checkSyncStatus = async () => {
-    if (!integration.connection?.id) return;
-
-    try {
-      const response = await fetch(
-        `/api/integrations/${integration.connection.id}/sync-status`,
-        { headers: getAuthHeaders() }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to check sync status");
-      }
-
-      const data = await response.json();
-
-      if (data.status === "in_progress") {
-        setIsSyncing(true);
-        startPolling();
-      } else {
-        setCheckedInitialSync(true);
-        fetchDocuments();
-      }
-    } catch (error) {
-      console.error("Error checking sync status:", error);
-      setError("Failed to check sync status");
-      setCheckedInitialSync(true);
-    }
-  };
-
-  const startPolling = () => {
-    const pollInterval = setInterval(async () => {
-      try {
-        const response = await fetch(
-          `/api/integrations/${integration.connection?.id}/sync-status`,
-          { headers: getAuthHeaders() }
-        );
-
-        if (!response.ok) {
-          throw new Error("Failed to check sync status");
-        }
-
-        const data = await response.json();
-
-        if (data.status === "in_progress") {
-          fetchDocuments();
-        }
-        if (data.status === "completed") {
-          clearInterval(pollInterval);
-          setIsSyncing(false);
-          setCheckedInitialSync(true);
-          fetchDocuments();
-        } else if (data.status === "failed") {
-          clearInterval(pollInterval);
-          setIsSyncing(false);
-          setCheckedInitialSync(true);
-          setError("Sync failed: " + (data.error || "Unknown error"));
-        }
-      } catch (error) {
-        clearInterval(pollInterval);
-        setIsSyncing(false);
-        setCheckedInitialSync(true);
-        setError("Failed to check sync status");
-        console.error("Sync status error:", error);
-      }
-    }, 2000);
-
-    return pollInterval;
-  };
-
-  const manualSync = async () => {
-    if (!integration.connection?.id) return;
-
-    setIsSyncing(true);
-    setError(null);
-
-    try {
-      const syncResponse = await fetch(
-        `/api/integrations/${integration.connection.id}/sync`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...getAuthHeaders(),
-          },
-          body: JSON.stringify({
-            integrationId: integration.key,
-            integrationName: integration.name,
-            integrationLogo: integration.logoUri,
-          }),
-        }
-      );
-
-      if (!syncResponse.ok) {
-        throw new Error("Failed to start sync");
-      }
-
-      startPolling();
-    } catch (error) {
-      console.error("Failed to start sync:", error);
-      setError("Failed to start sync");
-      setIsSyncing(false);
-    }
-  };
-
-  const fetchDocuments = async () => {
-    if (!integration.connection?.id) return;
-
-    setLoading(true);
-    setError(null);
-    try {
-      const response = await fetch(
-        `/api/integrations/${integration.connection.id}/documents`,
-        { headers: getAuthHeaders() }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch documents");
-      }
-
-      const { documents: fetchedDocuments } = await response.json();
-      setDocuments(fetchedDocuments || []);
-    } catch (error) {
-      console.error("Error fetching documents:", error);
-      setError("Failed to load documents");
-      setDocuments([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
@@ -449,9 +346,12 @@ export function DocumentPicker({
     onOpenChange(false);
   };
 
-  const reSync = () => {
+  const reSync = async () => {
     setDocuments([]);
-    manualSync();
+
+    if (integration.connection?.id) {
+      handleStartSync({ connectionId: integration.connection.id });
+    }
   };
 
   const renderContent = () => {
@@ -459,7 +359,7 @@ export function DocumentPicker({
       if (loading && !isSyncing)
         return <LoadingState message="Loading documents..." />;
       if (isSyncing) return <LoadingState message="Syncing documents..." />;
-      if (error) return <ErrorState message={error} onRetry={manualSync} />;
+      if (error) return <ErrorState message={error} onRetry={() => {}} />;
     }
     return (
       <div className="space-y-4">
