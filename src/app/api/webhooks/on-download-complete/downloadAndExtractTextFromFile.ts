@@ -15,7 +15,7 @@ import { inngest } from "@/inngest/client";
 import { DocumentModel } from "@/models/document";
 import { NonRetriableError } from "inngest";
 
-const TEXT_EXTRACTION_TIMEOUT = 3 * 60 * 1000; // 3 minutes
+const TEXT_EXTRACTION_TIMEOUT = 55 * 1000; // 55 seconds
 
 interface DownloadEventData {
   downloadURI: string;
@@ -106,60 +106,69 @@ export const inngest_downloadAndExtractTextFromFile = inngest.createFunction(
       });
 
       // Step 5b: Extract text content
-      const extractedText = await step.run("extract-text", async () => {
-        const { Body } = await getS3ObjectStream(newStorageKey);
+      const { text: extractedText } = await step.run(
+        "extract-text",
+        async () => {
+          const { Body } = await getS3ObjectStream(newStorageKey);
 
-        if (!Body) {
-          throw new Error("Failed to get file content from S3");
+          if (!Body) {
+            throw new Error("Failed to get file content from S3");
+          }
+
+          logger.info(`Got file content from S3: ${updatedDoc.title}`);
+          const chunks: Buffer[] = [];
+          for await (const chunk of Body as AsyncIterable<Buffer>) {
+            chunks.push(chunk);
+          }
+          const fileBuffer = Buffer.concat(chunks);
+
+          logger.info(`Sending file to Unstructured: ${updatedDoc.title}`);
+
+          // Create a timeout promise
+          const timeout = new Promise<string>((_, reject) => {
+            setTimeout(() => {
+              reject(new Error("Text extraction timed out"));
+            }, TEXT_EXTRACTION_TIMEOUT);
+          });
+
+          try {
+            // Race between the text extraction and timeout
+            const text = await Promise.race([
+              Unstructured.extractTextFromFile({
+                fileName: updatedDoc.title,
+                content: fileBuffer,
+              }),
+              timeout,
+            ]);
+
+            logger.info(`Unstructured extracted text successfully`);
+            return {
+              text,
+              timedOut: false,
+            };
+          } catch (error: unknown) {
+            logger.error(
+              `Text extraction failed or timed out: ${
+                error instanceof Error ? error.message : "Unknown error"
+              }`
+            );
+            // Update document to remove processing state
+            await DocumentModel.updateOne(
+              { connectionId, id: documentId },
+              { $set: { isExtractingText: false } }
+            );
+
+            return {
+              text: "",
+              timedOut: true,
+            };
+          }
         }
-
-        logger.info(`Got file content from S3: ${updatedDoc.title}`);
-        const chunks: Buffer[] = [];
-        for await (const chunk of Body as AsyncIterable<Buffer>) {
-          chunks.push(chunk);
-        }
-        const fileBuffer = Buffer.concat(chunks);
-
-        logger.info(`Sending file to Unstructured: ${updatedDoc.title}`);
-
-        // Create a timeout promise
-        const timeout = new Promise<string>((_, reject) => {
-          setTimeout(() => {
-            reject(new Error("Text extraction timed out"));
-          }, TEXT_EXTRACTION_TIMEOUT);
-        });
-
-        try {
-          // Race between the text extraction and timeout
-          const text = await Promise.race([
-            Unstructured.extractTextFromFile({
-              fileName: updatedDoc.title,
-              content: fileBuffer,
-            }),
-            timeout,
-          ]);
-
-          logger.info(`Unstructured extracted text successfully`);
-          return text;
-        } catch (error: unknown) {
-          logger.error(
-            `Text extraction failed or timed out: ${
-              error instanceof Error ? error.message : "Unknown error"
-            }`
-          );
-          // Update document to remove processing state
-          await DocumentModel.updateOne(
-            { connectionId, id: documentId },
-            { $set: { isExtractingText: false } }
-          );
-
-          return "";
-        }
-      });
+      );
 
       // Step 5c: Update document with extracted text
       await step.run("save-extracted-text", async () => {
-        await DocumentModel.updateOne(
+        const updatedDoc = await DocumentModel.updateOne(
           { connectionId, id: documentId },
           {
             $set: {
@@ -168,6 +177,8 @@ export const inngest_downloadAndExtractTextFromFile = inngest.createFunction(
             },
           }
         );
+
+        return updatedDoc;
       });
     }
 
