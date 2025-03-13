@@ -1,14 +1,10 @@
 import { z } from "zod";
 import connectDB from "@/lib/mongodb";
-import { deleteFileFromS3, processAndUploadFileToS3 } from "@/lib/s3-utils";
+
 import { DocumentModel } from "@/models/document";
 import { NextResponse } from "next/server";
-import { v4 as uuidv4 } from "uuid";
-import {
-  isSupportedFile,
-  Unstructured,
-  UnstructuredIsEnabled,
-} from "./text-extraction-utils";
+
+import { inngest } from "@/inngest/client";
 
 const onDownloadCompleteWebhookPayloadSchema = z.object({
   downloadURI: z
@@ -82,94 +78,26 @@ export async function POST(request: Request) {
         { new: true }
       );
     } else if (downloadURI) {
-      let buffer: Buffer | undefined;
-      let newStorageKey: string | undefined;
-
-      try {
-        console.log("FETCHING FILE FROM INTEGRATION AND UPLOADING TO S3");
-        const { keyWithExtension, buffer: _buffer } =
-          await processAndUploadFileToS3(
-            downloadURI,
-            `${connectionId}/${documentId}/${uuidv4()}/${document.title}`
-          );
-        console.log(`FILE UPLOADED TO S3: ${keyWithExtension}`);
-
-        newStorageKey = keyWithExtension;
-        buffer = _buffer;
-      } catch (error) {
-        console.error("Failed to process file:", error);
-        return NextResponse.json(
-          { error: "Failed to process file" },
-          { status: 500 }
-        );
-      }
-
-      if (newStorageKey && document.storageKey) {
-        console.log(`DELETING OLD FILE FROM S3: ${document.storageKey}`);
-        deleteFileFromS3(document.storageKey);
-      }
-
-      const updateData = newStorageKey ? { storageKey: newStorageKey } : {};
-      const documentAfterDownloadStatusIsUpdated =
-        await DocumentModel.findOneAndUpdate(
-          { connectionId, id: documentId },
-          {
-            $set: {
-              isDownloading: false,
-              lastSyncedAt: new Date().toISOString(),
-              ...updateData,
-            },
-          },
-          { new: true }
-        );
-
-      if (
-        Unstructured.hasUnstructuredCredentials &&
-        documentAfterDownloadStatusIsUpdated?.storageKey &&
-        UnstructuredIsEnabled &&
-        buffer
-      ) {
-        const _isSupportedFile = isSupportedFile(
-          documentAfterDownloadStatusIsUpdated.title
-        );
-
-        if (_isSupportedFile) {
-          console.log("EXTRACTING TEXT FROM FILE");
-
-          await DocumentModel.updateOne(
-            { connectionId, id: documentId },
-            {
-              $set: { isExtractingText: true },
-            }
-          );
-
-          const text = await Unstructured.extractTextFromFile({
-            fileName: documentAfterDownloadStatusIsUpdated.title,
-            content: buffer,
-          });
-
-          console.log("UPDATING DOCUMENT WITH EXTRACTED TEXT");
-
-          await DocumentModel.updateOne(
-            { connectionId, id: documentId },
-            {
-              $set: { content: text, isExtractingText: false },
-            }
-          );
-
-          console.log("DOCUMENT UPDATED WITH EXTRACTED TEXT");
-        }
-      }
-    }
-    
-    await DocumentModel.findOneAndUpdate(
-      { connectionId, id: documentId },
-      {
-        $set: {
-          isDownloading: false,
+      await inngest.send({
+        name: "document/download-and-extract-text-from-file",
+        data: {
+          downloadURI,
+          documentId,
+          connectionId,
+          title: document.title,
+          currentStorageKey: document.storageKey,
         },
-      }
-    );
+      });
+    } else {
+      await DocumentModel.findOneAndUpdate(
+        { connectionId, id: documentId },
+        {
+          $set: {
+            isDownloading: false,
+          },
+        }
+      );
+    }
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {
