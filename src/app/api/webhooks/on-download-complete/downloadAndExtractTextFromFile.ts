@@ -15,7 +15,7 @@ import { inngest } from "@/inngest/client";
 import { DocumentModel } from "@/models/document";
 import { NonRetriableError } from "inngest";
 
-const TEXT_EXTRACTION_TIMEOUT = 3 * 60 * 1000; // 5 minutes
+const TEXT_EXTRACTION_TIMEOUT = 3 * 60 * 1000; // 3 minutes
 
 interface DownloadEventData {
   downloadURI: string;
