@@ -14,6 +14,7 @@ import {
 import { inngest } from "@/inngest/client";
 import { DocumentModel } from "@/models/document";
 import { NonRetriableError } from "inngest";
+import connectDB from "@/lib/mongodb";
 
 const TEXT_EXTRACTION_TIMEOUT = 55 * 1000; // 55 seconds
 
@@ -42,6 +43,8 @@ export const inngest_downloadAndExtractTextFromFile = inngest.createFunction(
   async ({ event, step, logger }) => {
     const { downloadURI, documentId, connectionId, title, currentStorageKey } =
       event.data as DownloadEventData;
+
+    await connectDB();
 
     // Step 1: Download and upload file to S3
     const { newStorageKey } = await step.run(
