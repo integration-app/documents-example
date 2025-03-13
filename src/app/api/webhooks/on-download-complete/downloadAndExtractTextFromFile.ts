@@ -13,6 +13,7 @@ import {
 
 import { inngest } from "@/inngest/client";
 import { DocumentModel } from "@/models/document";
+import { NonRetriableError } from "inngest";
 
 const TEXT_EXTRACTION_TIMEOUT = 3 * 60 * 1000; // 5 minutes
 
@@ -80,7 +81,7 @@ export const inngest_downloadAndExtractTextFromFile = inngest.createFunction(
       ).lean();
 
       if (!doc) {
-        throw new Error("Failed to update document");
+        throw new NonRetriableError("Failed to update document");
       }
 
       return doc as DocumentType;
@@ -157,19 +158,17 @@ export const inngest_downloadAndExtractTextFromFile = inngest.createFunction(
       });
 
       // Step 5c: Update document with extracted text
-      if (extractedText) {
-        await step.run("save-extracted-text", async () => {
-          await DocumentModel.updateOne(
-            { connectionId, id: documentId },
-            {
-              $set: {
-                content: extractedText,
-                isExtractingText: false,
-              },
-            }
-          );
-        });
-      }
+      await step.run("save-extracted-text", async () => {
+        await DocumentModel.updateOne(
+          { connectionId, id: documentId },
+          {
+            $set: {
+              content: extractedText,
+              isExtractingText: false,
+            },
+          }
+        );
+      });
     }
 
     return { success: true };
