@@ -209,8 +209,8 @@ function useDocumentSync(connectionId: string | undefined, isSyncing: boolean) {
       return data.documents || [];
     },
     {
-      refreshInterval: isSyncing ? 2000 : 0,
-      revalidateOnFocus: !isSyncing,
+      refreshInterval: isSyncing ? 1500 : 0,
+      revalidateOnFocus: false,
       onError: (err: Error) => {
         console.error("Error fetching documents:", err);
       },
@@ -403,7 +403,7 @@ export function DocumentPicker({
               </div>
             )}
 
-            {!loading && !isSyncing && documents?.length > 0 && (
+            {!loading && !isSyncing && (
               <Button
                 variant="outline"
                 size="sm"

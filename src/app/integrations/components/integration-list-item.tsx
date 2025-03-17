@@ -48,8 +48,7 @@ export function IntegrationListItem({
       onSuccess: (data) => {
         if (data.status === "in_progress") {
           setIsSyncing(true);
-        }
-        if (data.status === "completed" || data.status === "failed") {
+        } else {
           setIsSyncing(false);
         }
       },
@@ -194,7 +193,7 @@ export function IntegrationListItem({
                 variant="ghost"
                 onClick={handleDisconnect}
                 size="sm"
-                disabled={isDisconnecting || isSyncing}
+                disabled={isDisconnecting}
                 className="w-[100px]"
               >
                 {isDisconnecting ? (
@@ -209,7 +208,7 @@ export function IntegrationListItem({
               onClick={handleConnect}
               variant="default"
               size="sm"
-              disabled={isConnecting}
+              disabled={isConnecting || isSyncing}
             >
               {isConnecting ? (
                 <>
