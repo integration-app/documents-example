@@ -19,6 +19,7 @@
     "@radix-ui/react-slot": "^1.1.1",
     "@types/jsonwebtoken": "^9.0.7",
     "@types/uuid": "^10.0.0",
+    "@vercel/analytics": "^1.5.0",
     "add": "^2.0.6",
     "autoprefixer": "^10.4.20",
     "card": "^2.5.4",

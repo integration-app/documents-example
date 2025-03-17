@@ -6,6 +6,7 @@ import { AuthProvider } from "./auth-provider";
 import { Toaster } from "sonner";
 import { Instrument_Sans } from "next/font/google";
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/react";
 
 const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
@@ -44,6 +45,7 @@ export default function RootLayout({
           </AuthProvider>
         </ThemeProvider>
         <Toaster />
+        <Analytics />
       </body>
     </html>
   );
