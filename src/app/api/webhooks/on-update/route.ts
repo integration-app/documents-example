@@ -53,7 +53,6 @@ export async function POST(request: Request) {
         title: fields.title,
         updatedAt: fields.updatedAt,
         resourceURI: fields.resourceURI,
-        isDownloading: shouldDownload,
         parentId: fields.parentId,
       },
     });

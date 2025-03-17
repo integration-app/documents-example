@@ -14,6 +14,15 @@ export async function triggerDownloadDocumentFlow(
     throw new Error(`Document with id ${documentId} not found`);
   }
 
+  if (doc.isDownloading) {
+    return false;
+  }
+
+  await DocumentModel.updateOne(
+    { id: documentId },
+    { $set: { isDownloading: true } }
+  );
+
   let runResult;
 
   try {

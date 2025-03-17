@@ -51,16 +51,17 @@ export async function PATCH(
       }
 
       if (document.canDownload && hasAWSCredentials) {
-        await DocumentModel.updateOne(
-          { connectionId, id: documentId },
-          { $set: { isDownloading: true } }
+        const run = await triggerDownloadDocumentFlow(
+          token,
+          connectionId,
+          documentId
         );
-
-        await triggerDownloadDocumentFlow(token, connectionId, documentId);
 
         console.log(
-          `calling download-document in integration flow for document ${documentId}`
+          `calling download-document in integration flow for document ${documentId}. Run result:`
         );
+
+        console.log(run);
       }
     }
 

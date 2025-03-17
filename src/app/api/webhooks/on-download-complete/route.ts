@@ -63,16 +63,13 @@ export async function POST(request: Request) {
     }
 
     if (text) {
-      const updateData = {
-        content: text,
-      };
-
       await DocumentModel.findOneAndUpdate(
         { connectionId, id: documentId },
         {
           $set: {
             lastSyncedAt: new Date().toISOString(),
-            ...updateData,
+            isDownloading: false,
+            content: text,
           },
         },
         { new: true }

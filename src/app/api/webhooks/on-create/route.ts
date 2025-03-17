@@ -88,7 +88,6 @@ export async function POST(request: NextRequest) {
             document: {
               ...fields,
               isSubscribed: isSubscribed,
-              isDownloading: shouldDownload,
               userId,
               connectionId,
             },
