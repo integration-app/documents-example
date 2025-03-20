@@ -34,6 +34,11 @@ export async function triggerDownloadDocumentFlow(
           documentId,
         },
       });
+
+    await DocumentModel.updateOne(
+      { id: documentId },
+      { $set: { isDownloading: true } }
+    );
   } catch (error) {
     await DocumentModel.updateOne(
       { id: documentId },

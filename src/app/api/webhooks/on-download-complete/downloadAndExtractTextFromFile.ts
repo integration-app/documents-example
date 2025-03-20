@@ -37,8 +37,22 @@ interface DocumentType {
   lastSyncedAt: string;
 }
 
+interface FailureEvent {
+  data: {
+    connectionId: string;
+    documentId: string;
+  };
+}
+
+const onFailure = async ({ event }: { event: FailureEvent }) => {
+  await DocumentModel.updateOne(
+    { connectionId: event.data.connectionId, id: event.data.documentId },
+    { $set: { isDownloading: false, isExtractingText: false } }
+  );
+};
+
 export const inngest_downloadAndExtractTextFromFile = inngest.createFunction(
-  { id: "download-and-extract-text-from-file" },
+  { id: "download-and-extract-text-from-file", onFailure },
   { event: "document/download-and-extract-text-from-file" },
   async ({ event, step, logger }) => {
     const { downloadURI, documentId, connectionId, title, currentStorageKey } =
@@ -46,7 +60,15 @@ export const inngest_downloadAndExtractTextFromFile = inngest.createFunction(
 
     await connectDB();
 
-    // Step 1: Download and upload file to S3
+    // Mark document as downloading
+    await step.run("mark-document-as-downloading", async () => {
+      await DocumentModel.updateOne(
+        { connectionId, id: documentId },
+        { $set: { isDownloading: true } }
+      );
+    });
+
+    // Download and upload file to S3
     const { newStorageKey } = await step.run(
       "process-and-upload-file",
       async () => {
@@ -61,7 +83,7 @@ export const inngest_downloadAndExtractTextFromFile = inngest.createFunction(
       }
     );
 
-    // Step 2: Clean up old S3 file if needed
+    // Clean up old S3 file if needed
     if (currentStorageKey) {
       await step.run("cleanup-old-file", async () => {
         await deleteFileFromS3(currentStorageKey);
@@ -69,7 +91,7 @@ export const inngest_downloadAndExtractTextFromFile = inngest.createFunction(
       });
     }
 
-    // Step 3: Update document with new storage key
+    // Update document with new storage key
     const updatedDoc = await step.run("update-document-storage", async () => {
       const doc = await DocumentModel.findOneAndUpdate(
         { connectionId, id: documentId },
@@ -90,7 +112,7 @@ export const inngest_downloadAndExtractTextFromFile = inngest.createFunction(
       return doc as DocumentType;
     });
 
-    // Step 4: Extract text if possible
+    // Extract text if possible
     const shouldExtractText =
       Unstructured.hasUnstructuredCredentials &&
       updatedDoc.storageKey &&
@@ -108,7 +130,7 @@ export const inngest_downloadAndExtractTextFromFile = inngest.createFunction(
         return updatedDoc;
       });
 
-      // Step 5b: Extract text content
+      // Extract text content
       const { text: extractedText } = await step.run(
         "extract-text",
         async () => {

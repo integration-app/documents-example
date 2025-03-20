@@ -12,7 +12,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Integration } from "@integration-app/sdk";
 import { Input } from "@/components/ui/input";
-import { Document } from "@/models/document";
+import type { Document } from "@/models/document";
 import {
   FileIcon,
   RefreshCcwIcon,
@@ -24,7 +24,8 @@ import {
 import { toast } from "sonner";
 import Image from "next/image";
 import { useDocumentNavigation } from "../hooks/use-document-navigation";
-import useSWR from "swr";
+import { ErrorState } from "./error-state";
+import { useDocuments } from "../hooks/useDocuments";
 
 const Icons = {
   file: FileIcon,
@@ -160,24 +161,6 @@ function LoadingState({ message }: LoadingStateProps) {
   );
 }
 
-interface ErrorStateProps {
-  message: string;
-  onRetry: () => void;
-}
-
-function ErrorState({ message, onRetry }: ErrorStateProps) {
-  return (
-    <div className="flex flex-col items-center justify-center py-12">
-      <div className="mb-4 p-4 text-red-500 bg-red-50 rounded-md">
-        {message}
-      </div>
-      <Button onClick={onRetry} variant="outline">
-        Try Again
-      </Button>
-    </div>
-  );
-}
-
 interface DocumentPickerProps {
   integration: Integration;
   onComplete: () => void;
@@ -186,44 +169,7 @@ interface DocumentPickerProps {
   onOpenChange: (open: boolean) => void;
   isSyncing: boolean;
   handleStartSync: (params: { connectionId: string }) => Promise<void>;
-}
-
-function useDocumentSync(connectionId: string | undefined, isSyncing: boolean) {
-  type DocumentResponse = {
-    documents: Document[];
-  };
-
-  const {
-    data: documents = [],
-    error,
-    isLoading,
-    mutate,
-  } = useSWR<Document[]>(
-    connectionId ? `/api/integrations/${connectionId}/documents` : null,
-    async (url: string) => {
-      const response = await fetch(url, { headers: getAuthHeaders() });
-      if (!response.ok) {
-        throw new Error("Failed to fetch documents");
-      }
-      const data = (await response.json()) as DocumentResponse;
-      return data.documents || [];
-    },
-    {
-      refreshInterval: isSyncing ? 1500 : 0,
-      revalidateOnFocus: false,
-      onError: (err: Error) => {
-        console.error("Error fetching documents:", err);
-      },
-    }
-  );
-
-  return {
-    documents,
-    setDocuments: (newDocuments: Document[]) => mutate(newDocuments, false),
-    loading: isLoading,
-    error: error?.message || null,
-    fetchDocuments: () => mutate(),
-  };
+  syncError?: string | null;
 }
 
 export function DocumentPicker({
@@ -234,15 +180,19 @@ export function DocumentPicker({
   onOpenChange,
   isSyncing,
   handleStartSync,
+  syncError,
 }: DocumentPickerProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [isSubscribing, setIsSubscribing] = useState(false);
 
-  const { documents, setDocuments, loading, error } = useDocumentSync(
-    integration.connection?.id,
-    isSyncing
-  );
+  const {
+    documents,
+    setDocuments,
+    loading,
+    error: fetchDocumentsError,
+    fetchDocuments,
+  } = useDocuments(integration.connection?.id, isSyncing);
 
   const {
     currentFolders,
@@ -359,7 +309,18 @@ export function DocumentPicker({
       if (loading && !isSyncing)
         return <LoadingState message="Loading documents..." />;
       if (isSyncing) return <LoadingState message="Syncing documents..." />;
-      if (error) return <ErrorState message={error} onRetry={() => {}} />;
+      if (fetchDocumentsError)
+        return (
+          <ErrorState message={fetchDocumentsError} onRetry={fetchDocuments} />
+        );
+      if (syncError)
+        return (
+          <ErrorState
+            title="An error occured during the last sync"
+            message={`"${syncError}"`}
+            onRetry={reSync}
+          />
+        );
     }
     return (
       <div className="space-y-4">
@@ -396,6 +357,7 @@ export function DocumentPicker({
               )}
               <DialogTitle>{integration.name}</DialogTitle>
             </div>
+
             {isSyncing && (
               <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
                 <Icons.spinner className="h-3 w-3 animate-spin" />

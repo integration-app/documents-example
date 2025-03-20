@@ -13,14 +13,13 @@ import { Icons } from "@/components/ui/icons";
 import { toast } from "sonner";
 import { startSync } from "@/lib/integration-api";
 import useSWR from "swr";
+import { KnowledgeStatus } from "@/models/knowledge";
+import { SyncStatusRouteSuccessResponse } from "@/app/api/integrations/[id]/sync-status/types";
+import { SyncStatusRouteErrorResponse } from "@/app/api/integrations/[id]/sync-status/types";
 
 interface IntegrationListItemProps {
   integration: Integration;
   onRefresh: () => Promise<void>;
-}
-
-interface SyncStatus {
-  status: "in_progress" | "completed" | "failed";
 }
 
 export function IntegrationListItem({
@@ -32,9 +31,15 @@ export function IntegrationListItem({
   const [isPickerOpen, setIsPickerOpen] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] =
+    useState<SyncStatusRouteSuccessResponse | null>(null);
 
-  const { mutate: mutateSyncStatus } = useSWR<SyncStatus>(
+  const isSyncing = syncStatus?.status === KnowledgeStatus.in_progress;
+
+  const { mutate: mutateSyncStatus } = useSWR<
+    SyncStatusRouteSuccessResponse,
+    SyncStatusRouteErrorResponse
+  >(
     integration.connection?.id
       ? `/api/integrations/${integration.connection.id}/sync-status`
       : null,
@@ -46,15 +51,10 @@ export function IntegrationListItem({
     {
       refreshInterval: isSyncing ? 2000 : 0,
       onSuccess: (data) => {
-        if (data.status === "in_progress") {
-          setIsSyncing(true);
-        } else {
-          setIsSyncing(false);
-        }
+        setSyncStatus(data);
       },
-      onError: (error) => {
-        console.error("Error fetching sync status:", error);
-        setIsSyncing(false);
+      onError: () => {
+        setSyncStatus(null);
       },
     }
   );
@@ -64,7 +64,12 @@ export function IntegrationListItem({
   }: {
     connectionId: string;
   }) => {
-    setIsSyncing(true);
+    setSyncStatus({
+      status: KnowledgeStatus.in_progress,
+      error: null,
+      startedAt: new Date(),
+      completedAt: null,
+    });
 
     try {
       await startSync(connectionId, {
@@ -73,10 +78,17 @@ export function IntegrationListItem({
         logoUri: integration.logoUri,
       });
 
-      // Trigger immediate revalidation of sync status
       mutateSyncStatus();
     } catch (error) {
-      setIsSyncing(false);
+      setSyncStatus({
+        status: KnowledgeStatus.failed,
+        error: error instanceof Error ? error.message : "Unknown error",
+        startedAt: new Date(),
+        completedAt: new Date(),
+      });
+
+      mutateSyncStatus();
+
       toast.error("Failed to sync documents", {
         description: error instanceof Error ? error.message : "Unknown error",
       });
@@ -119,9 +131,11 @@ export function IntegrationListItem({
       });
 
       await integrationApp.connection(integration.connection.id).archive();
+
+      await mutateSyncStatus();
+
       await onRefresh();
     } catch (error) {
-      console.error("Failed to disconnect:", error);
       toast.error("Failed to disconnect", {
         description: error instanceof Error ? error.message : "Unknown error",
       });
@@ -144,6 +158,7 @@ export function IntegrationListItem({
           open={isPickerOpen}
           onOpenChange={setIsPickerOpen}
           handleStartSync={handleStartSync}
+          syncError={syncStatus?.error || null}
         />
       )}
 
@@ -179,7 +194,7 @@ export function IntegrationListItem({
         </div>
 
         <div className="flex items-center gap-2">
-          {integration.connection && !integration.connection.disconnected ? (
+          {integration.connection ? (
             <>
               <Button
                 variant="outline"
