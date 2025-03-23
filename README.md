@@ -37,17 +37,15 @@ cp .env-sample .env
 
 ### 4. **Add the Scenario to Your Workspace:**
 
-This application relies on predefined [flows](https://console.integration.app/docs/building/blocks/flows), [actions](https://console.integration.app/docs/building/blocks/actions), and other primitives, all organized within a **Scenario**— our structured way of managing universal integrations.
+This application relies on predefined [flows](https://console.integration.app/docs/building/blocks/flows), [actions](https://console.integration.app/docs/building/blocks/actions), and other primitives, all organized within a **Scenario template**
 
-To use the same flow and actions in your workspace, navigate to the [Continuously Import Content to My App Scenario](https://integration.app/scenarios/continuously-import-content-to-my-app) and click the **"Add to App"** button. This will add the required flows and actions, data sources and other primitives to your workspace.
+To use the same flows and actions in your workspace, navigate to the [Continuously Import Content to My App Scenario](https://integration.app/scenarios/continuously-import-content-to-my-app) and click the **"Add to App"** button. This will add the required flows and actions, data sources and other primitives to your workspace.
 
 ### 5. Configure your apps
+
 The [Continuously Import Content to My App Scenario](https://integration.app/scenarios/continuously-import-content-to-my-app) adds **8 apps** to your workspace and for most apps to work, you'll need to provide configuration parameters. The configuration guide for each apps explains how to get the credentials needed. See video below for an overview of the configuration process:
 
 https://github.com/user-attachments/assets/272197b4-aea9-40ff-a444-ac0fa17f672f
-
-
-
 
 ### 6. **Start the development server:**
 
@@ -65,15 +63,9 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 - Docker and Docker Compose installed on your machine
 
-### Todos
-- [ ] Get events working for all apps
-
 ### Setting up MongoDB
 
 If you want to use MongoDB via Docker, you can do so by running the following command:
-
-
-
 
 ```bash
 docker-compose up
@@ -84,6 +76,10 @@ You can now use the `MONGODB_URI` environment variable to connect to the databas
 ```env
 MONGODB_URI=mongodb://admin:password123@localhost:27017/knowledge
 ```
+
+## Todos
+
+- [ ] Get events working for all apps
 
 ## License
 

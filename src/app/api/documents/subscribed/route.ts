@@ -11,7 +11,6 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB();
 
-    // Get all subscribed documents with truncated content
     const documents = await DocumentModel.aggregate([
       {
         $match: {
@@ -33,12 +32,12 @@ export async function GET(request: NextRequest) {
           parentId: 1,
           userId: 1,
           isSubscribed: 1,
-          isDownloading: 1,
           canHaveChildren: 1,
-          isExtractingText: 1,
+          downloadState: 1,
+          downloadError: 1,
         },
       },
-    ])
+    ]);
 
     // Get integration info for each unique connectionId
     const connections = await KnowledgeModel.find({

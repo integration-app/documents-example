@@ -1,4 +1,5 @@
 import { DocumentModel } from "@/models/document";
+import { DownloadState } from "@/types/download";
 import { IntegrationAppClient } from "@integration-app/sdk";
 
 export async function triggerDownloadDocumentFlow(
@@ -14,14 +15,13 @@ export async function triggerDownloadDocumentFlow(
     throw new Error(`Document with id ${documentId} not found`);
   }
 
-  if (doc.isDownloading) {
+  // If the document is already downloading or extracting text, don't trigger the flow again
+  if (
+    doc.downloadState === DownloadState.DOWNLOADING_FROM_URL ||
+    doc.downloadState === DownloadState.EXTRACTING_TEXT
+  ) {
     return false;
   }
-
-  await DocumentModel.updateOne(
-    { id: documentId },
-    { $set: { isDownloading: true } }
-  );
 
   let runResult;
 
@@ -37,12 +37,20 @@ export async function triggerDownloadDocumentFlow(
 
     await DocumentModel.updateOne(
       { id: documentId },
-      { $set: { isDownloading: true } }
+      { $set: { downloadState: DownloadState.FLOW_TRIGGERED } }
     );
   } catch (error) {
+    console.error(
+      `Failed to trigger flow for document ${documentId}: ${error}`
+    );
     await DocumentModel.updateOne(
       { id: documentId },
-      { $set: { isDownloading: false } }
+      {
+        $set: {
+          downloadState: DownloadState.FAILED,
+          downloadError: "Failed to trigger flow",
+        },
+      }
     );
 
     throw error;

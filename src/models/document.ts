@@ -1,3 +1,4 @@
+import { DownloadStateType, DownloadState } from "@/types/download";
 import { Schema, model, models } from "mongoose";
 
 export interface Document {
@@ -15,8 +16,9 @@ export interface Document {
   content?: string;
   lastSyncedAt: string;
   storageKey?: string;
-  isDownloading?: boolean;
-  isExtractingText?: boolean;
+
+  downloadState?: DownloadStateType;
+  downloadError?: string;
 }
 
 interface DocumentWithConnection extends Document {
@@ -55,8 +57,15 @@ const documentSchema = new Schema<DocumentWithConnection>(
       type: String,
       default: null,
     },
-    isDownloading: { type: Boolean, default: false },
-    isExtractingText: { type: Boolean, default: false },
+    downloadState: {
+      type: String,
+      enum: Object.values(DownloadState),
+      default: null,
+    },
+    downloadError: {
+      type: String,
+      default: null,
+    },
   },
   {
     _id: false,

@@ -44,9 +44,8 @@ export async function PATCH(
 
       const unsubScribeFile = !isSubscribed;
       const noDocumentFound = !document;
-      const documentIsDownloading = document?.isDownloading;
 
-      if (unsubScribeFile || noDocumentFound || documentIsDownloading) {
+      if (unsubScribeFile || noDocumentFound) {
         continue;
       }
 

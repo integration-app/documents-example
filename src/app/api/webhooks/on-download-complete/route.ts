@@ -3,8 +3,8 @@ import connectDB from "@/lib/mongodb";
 
 import { DocumentModel } from "@/models/document";
 import { NextResponse } from "next/server";
-
 import { inngest } from "@/inngest/client";
+import { DownloadState } from "@/types/download";
 
 const onDownloadCompleteWebhookPayloadSchema = z.object({
   downloadURI: z
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
         {
           $set: {
             lastSyncedAt: new Date().toISOString(),
-            isDownloading: false,
+            downloadState: DownloadState.DONE,
             content: text,
           },
         },
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
         { connectionId, id: documentId },
         {
           $set: {
-            isDownloading: false,
+            downloadState: DownloadState.DONE,
           },
         }
       );

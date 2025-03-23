@@ -15,6 +15,7 @@ import { inngest } from "@/inngest/client";
 import { DocumentModel } from "@/models/document";
 import { NonRetriableError } from "inngest";
 import connectDB from "@/lib/mongodb";
+import { DownloadState } from "@/types/download";
 
 const TEXT_EXTRACTION_TIMEOUT = 55 * 1000; // 55 seconds
 
@@ -26,33 +27,28 @@ interface DownloadEventData {
   currentStorageKey?: string;
 }
 
-interface DocumentType {
-  id: string;
-  connectionId: string;
-  title: string;
-  storageKey?: string;
-  content?: string;
-  isDownloading: boolean;
-  isExtractingText: boolean;
-  lastSyncedAt: string;
-}
-
-interface FailureEvent {
-  data: {
-    connectionId: string;
-    documentId: string;
-  };
-}
-
-const onFailure = async ({ event }: { event: FailureEvent }) => {
-  await DocumentModel.updateOne(
-    { connectionId: event.data.connectionId, id: event.data.documentId },
-    { $set: { isDownloading: false, isExtractingText: false } }
-  );
-};
-
 export const inngest_downloadAndExtractTextFromFile = inngest.createFunction(
-  { id: "download-and-extract-text-from-file", onFailure },
+  {
+    id: "download-and-extract-text-from-file",
+    retries: 3,
+    onFailure: async (props) => {
+      const event = props.event.data;
+
+      const eventData = event.event.data;
+      const errorMessage = event.error.message;
+
+      await DocumentModel.updateOne(
+        { connectionId: eventData.connectionId, id: eventData.documentId },
+        {
+          $set: {
+            downloadState: DownloadState.FAILED,
+            downloadError:
+              errorMessage || "Error downloading or extracting text",
+          },
+        }
+      );
+    },
+  },
   { event: "document/download-and-extract-text-from-file" },
   async ({ event, step, logger }) => {
     const { downloadURI, documentId, connectionId, title, currentStorageKey } =
@@ -64,7 +60,7 @@ export const inngest_downloadAndExtractTextFromFile = inngest.createFunction(
     await step.run("mark-document-as-downloading", async () => {
       await DocumentModel.updateOne(
         { connectionId, id: documentId },
-        { $set: { isDownloading: true } }
+        { $set: { downloadState: DownloadState.DOWNLOADING_FROM_URL } }
       );
     });
 
@@ -97,7 +93,7 @@ export const inngest_downloadAndExtractTextFromFile = inngest.createFunction(
         { connectionId, id: documentId },
         {
           $set: {
-            isDownloading: false,
+            downloadState: DownloadState.DONE,
             lastSyncedAt: new Date().toISOString(),
             storageKey: newStorageKey,
           },
@@ -109,7 +105,7 @@ export const inngest_downloadAndExtractTextFromFile = inngest.createFunction(
         throw new NonRetriableError("Failed to update document");
       }
 
-      return doc as DocumentType;
+      return doc;
     });
 
     // Extract text if possible
@@ -120,14 +116,12 @@ export const inngest_downloadAndExtractTextFromFile = inngest.createFunction(
       isSupportedFile(updatedDoc.title);
 
     if (shouldExtractText) {
-      // Step 5a: Mark document as processing
+      // Mark document as processing
       await step.run("mark-text-extraction-start", async () => {
-        const updatedDoc = await DocumentModel.updateOne(
+        await DocumentModel.updateOne(
           { connectionId, id: documentId },
-          { $set: { isExtractingText: true } }
+          { $set: { downloadState: DownloadState.EXTRACTING_TEXT } }
         );
-
-        return updatedDoc;
       });
 
       // Extract text content
@@ -177,10 +171,18 @@ export const inngest_downloadAndExtractTextFromFile = inngest.createFunction(
                 error instanceof Error ? error.message : "Unknown error"
               }`
             );
-            // Update document to remove processing state
+
             await DocumentModel.updateOne(
               { connectionId, id: documentId },
-              { $set: { isExtractingText: false } }
+              {
+                $set: {
+                  downloadState: DownloadState.FAILED,
+                  downloadError:
+                    error instanceof Error
+                      ? error.message
+                      : "Unable to extract text from file",
+                },
+              }
             );
 
             return {
@@ -191,19 +193,17 @@ export const inngest_downloadAndExtractTextFromFile = inngest.createFunction(
         }
       );
 
-      // Step 5c: Update document with extracted text
+      // Update document with extracted text
       await step.run("save-extracted-text", async () => {
-        const updatedDoc = await DocumentModel.updateOne(
+        await DocumentModel.updateOne(
           { connectionId, id: documentId },
           {
             $set: {
               content: extractedText,
-              isExtractingText: false,
+              downloadState: DownloadState.DONE,
             },
           }
         );
-
-        return updatedDoc;
       });
     }
 

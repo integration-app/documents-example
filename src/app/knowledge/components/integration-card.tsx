@@ -5,7 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Document } from "@/models/document";
 import { DocumentViewer } from "@/app/knowledge/components/document-viewer";
-import { DocumentItem } from "@/app/knowledge/components/document-item";
+import { KnowledgeItem } from "@/app/knowledge/components/knowledge-item";
 import { useDocumentNavigation } from "@/app/integrations/hooks/use-document-navigation";
 import { ChevronRightIcon } from "lucide-react";
 import Image from "next/image";
@@ -94,17 +94,17 @@ export function IntegrationCard({
               </div>
             )}
             {folders.map((doc) => (
-              <DocumentItem
+              <KnowledgeItem
                 integrationName={integrationName}
                 key={doc.id}
                 document={doc}
-                onItemClick={navigateToFolder}
+                onItemClick={() => navigateToFolder(doc.id, doc.title)}
                 onClickViewContent={(doc) => setViewingDocument(doc)}
               />
             ))}
 
             {files.map((doc) => (
-              <DocumentItem
+              <KnowledgeItem
                 integrationName={integrationName}
                 key={doc.id}
                 document={doc}
