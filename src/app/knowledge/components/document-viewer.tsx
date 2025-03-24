@@ -29,30 +29,28 @@ export function DocumentViewer({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (open && documentId) {
-      fetchContent();
-    }
-  }, [open, documentId]);
+    const fetchContent = async () => {
+      try {
+        const response = await fetch(`/api/documents/${documentId}/content`, {
+          headers: getAuthHeaders(),
+        });
 
-  const fetchContent = async () => {
-    try {
-      const response = await fetch(`/api/documents/${documentId}/content`, {
-        headers: getAuthHeaders(),
-      });
+        if (!response.ok) {
+          throw new Error("Failed to fetch document content");
+        }
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch document content");
+        const data = await response.json();
+        setContent(data.content);
+      } catch (error) {
+        console.error("Error fetching content:", error);
+        setError("Failed to load document content");
+      } finally {
+        setLoading(false);
       }
+    };
 
-      const data = await response.json();
-      setContent(data.content);
-    } catch (error) {
-      console.error("Error fetching content:", error);
-      setError("Failed to load document content");
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchContent();
+  }, [documentId]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

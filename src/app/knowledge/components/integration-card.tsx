@@ -1,10 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Document } from "@/models/document";
-import { DocumentViewer } from "@/app/knowledge/components/document-viewer";
 import { KnowledgeItem } from "@/app/knowledge/components/knowledge-item";
 import { useDocumentNavigation } from "@/app/integrations/hooks/use-document-navigation";
 import { ChevronRightIcon } from "lucide-react";
@@ -23,8 +21,6 @@ export function IntegrationCard({
   integrationLogo,
   documents,
 }: IntegrationCardProps) {
-  const [viewingDocument, setViewingDocument] = useState<Document | null>(null);
-
   const {
     currentFolders: folders,
     currentFiles: files,
@@ -99,7 +95,6 @@ export function IntegrationCard({
                 key={doc.id}
                 document={doc}
                 onItemClick={() => navigateToFolder(doc.id, doc.title)}
-                onClickViewContent={(doc) => setViewingDocument(doc)}
               />
             ))}
 
@@ -108,21 +103,11 @@ export function IntegrationCard({
                 integrationName={integrationName}
                 key={doc.id}
                 document={doc}
-                onClickViewContent={(doc) => setViewingDocument(doc)}
               />
             ))}
           </div>
         </CardContent>
       </Card>
-
-      {viewingDocument && (
-        <DocumentViewer
-          documentId={viewingDocument.id}
-          title={viewingDocument.title}
-          open={viewingDocument !== null}
-          onOpenChange={(open) => !open && setViewingDocument(null)}
-        />
-      )}
     </>
   );
 }

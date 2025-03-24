@@ -24,6 +24,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { format } from "date-fns";
+import { DocumentViewer } from "./document-viewer";
+import { useState } from "react";
 
 const Icons = {
   file: FileIcon,
@@ -39,7 +41,6 @@ const Icons = {
 interface DocumentItemProps {
   document: Document;
   onItemClick?: (document: Document) => void;
-  onClickViewContent?: (document: Document) => void;
   integrationName: string;
 }
 
@@ -47,14 +48,16 @@ export function KnowledgeItem({
   document,
   integrationName,
   onItemClick: onFolderClick,
-  onClickViewContent,
 }: DocumentItemProps) {
   const isFolder = document.canHaveChildren;
 
+  const [isViewingDocument, setIsViewingDocument] = useState<boolean>(false);
+
   return (
     <div
-      className={`flex gap-3 p-2 hover:bg-gray-50 rounded-md ${isFolder ? "cursor-pointer" : ""
-        }`}
+      className={`flex gap-3 p-2 hover:bg-gray-50 rounded-md ${
+        isFolder ? "cursor-pointer" : ""
+      }`}
       onClick={() => {
         if (isFolder) {
           onFolderClick?.(document);
@@ -68,7 +71,9 @@ export function KnowledgeItem({
           ) : (
             <Icons.file className="h-4 w-4 text-gray-400" />
           )}
-          <span className="text-sm font-medium leading-none">{document.title}</span>
+          <span className="text-sm font-medium leading-none">
+            {document.title}
+          </span>
           <span className="text-xs text-gray-400">
             {document.id.length > 24
               ? `${document.id.slice(0, 12)}...${document.id.slice(-12)}`
@@ -109,9 +114,26 @@ export function KnowledgeItem({
             </PopoverContent>
           </Popover>
         )}
-        {(document.content !== null || document.storageKey || document.resourceURI) && (
+        {document.content !== null && (
+          <Button
+            size="sm"
+            className="p-2 rounded"
+            onClick={(e: React.MouseEvent) => {
+              e.stopPropagation();
+              setIsViewingDocument(true);
+            }}
+          >
+            <Icons.file className="h-4 w-4" />
+          </Button>
+        )}
+        {(document.content !== null ||
+          document.storageKey ||
+          document.resourceURI) && (
           <DropdownMenu>
-            <DropdownMenuTrigger asChild onClick={(e: React.MouseEvent) => e.stopPropagation()}>
+            <DropdownMenuTrigger
+              asChild
+              onClick={(e: React.MouseEvent) => e.stopPropagation()}
+            >
               <Button
                 size="sm"
                 variant="ghost"
@@ -121,17 +143,6 @@ export function KnowledgeItem({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="min-w-[180px] b-2">
-              {document.content !== null && (
-                <DropdownMenuItem
-                  onClick={(e: React.MouseEvent) => {
-                    e.stopPropagation();
-                    onClickViewContent?.(document);
-                  }}
-                >
-                  <Icons.file className="h-4 w-4 mr-2" />
-                  View content
-                </DropdownMenuItem>
-              )}
               {document.storageKey && (
                 <DropdownMenuItem
                   onClick={(e: React.MouseEvent) => {
@@ -159,6 +170,13 @@ export function KnowledgeItem({
             </DropdownMenuContent>
           </DropdownMenu>
         )}
+
+        <DocumentViewer
+          documentId={document.id}
+          title={document.title}
+          open={isViewingDocument}
+          onOpenChange={(open) => !open && setIsViewingDocument(false)}
+        />
 
         {isFolder && <Icons.chevronRight className="h-4 w-4 text-gray-400" />}
       </div>
