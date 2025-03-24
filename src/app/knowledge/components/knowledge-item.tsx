@@ -178,7 +178,9 @@ export function KnowledgeItem({
           onOpenChange={(open) => !open && setIsViewingDocument(false)}
         />
 
-        {isFolder && <Icons.chevronRight className="h-4 w-4 text-gray-400" />}
+        <div className="w-4">
+          {isFolder && <Icons.chevronRight className="h-4 w-4 text-gray-400" />}
+        </div>
       </div>
     </div>
   );
