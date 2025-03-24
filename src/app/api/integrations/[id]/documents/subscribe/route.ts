@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import { DocumentModel } from "@/models/document";
 import { getAuthFromRequest } from "@/lib/server-auth";
-import { generateIntegrationToken } from "@/lib/integration-token";
+import { generateCustomerAccessToken } from "@/lib/integration-token";
 import { triggerDownloadDocumentFlow } from "@/lib/flows";
 import { hasAWSCredentials } from "@/lib/s3-utils";
 
@@ -33,7 +33,7 @@ export async function PATCH(
     );
 
     const auth = getAuthFromRequest(request);
-    const token = await generateIntegrationToken(auth);
+    const token = await generateCustomerAccessToken(auth);
 
     // Trigger download for subscribed documents
     for (const documentId of documentIds) {

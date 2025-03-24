@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAuthFromRequest } from "@/lib/server-auth";
 import { inngest } from "@/inngest/client";
-import { generateIntegrationToken } from "@/lib/integration-token";
+import { generateCustomerAccessToken } from "@/lib/integration-token";
 import connectDB from "@/lib/mongodb";
 import { KnowledgeModel, KnowledgeStatus } from "@/models/knowledge";
 import { SyncEventData, SyncRequestBody, SyncRouteResponse } from "./types";
@@ -17,7 +17,7 @@ export async function POST(
       (await request.json()) as SyncRequestBody;
 
     const auth = getAuthFromRequest(request);
-    const token = await generateIntegrationToken(auth);
+    const token = await generateCustomerAccessToken(auth);
 
     await connectDB();
 
