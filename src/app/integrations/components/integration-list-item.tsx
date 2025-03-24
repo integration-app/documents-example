@@ -154,7 +154,7 @@ export function IntegrationListItem({
             setIsPickerOpen(false);
             router.push("/knowledge");
           }}
-          onCancel={() => setIsPickerOpen(false)}
+          onClose={() => setIsPickerOpen(false)}
           open={isPickerOpen}
           onOpenChange={setIsPickerOpen}
           handleStartSync={handleStartSync}

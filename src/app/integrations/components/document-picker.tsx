@@ -164,7 +164,7 @@ function LoadingState({ message }: LoadingStateProps) {
 interface DocumentPickerProps {
   integration: Integration;
   onComplete: () => void;
-  onCancel: () => void;
+  onClose: () => void;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   isSyncing: boolean;
@@ -175,7 +175,7 @@ interface DocumentPickerProps {
 export function DocumentPicker({
   integration,
   onComplete,
-  onCancel,
+  onClose,
   open,
   onOpenChange,
   isSyncing,
@@ -394,8 +394,8 @@ export function DocumentPicker({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onCancel} disabled={isSyncing}>
-            Cancel
+          <Button variant="outline" onClick={onClose}>
+            Close
           </Button>
           <Button onClick={handleDone}>Done</Button>
         </DialogFooter>
