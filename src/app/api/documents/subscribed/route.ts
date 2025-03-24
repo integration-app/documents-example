@@ -24,7 +24,13 @@ export async function GET(request: NextRequest) {
           id: 1,
           connectionId: 1,
           title: 1,
-          content: { $substr: ["$content", 0, 10] }, //Truncate for performance
+          content: {
+            $cond: {
+              if: { $ifNull: ["$content", null] },
+              then: { $substr: ["$content", 0, 10] },
+              else: null,
+            },
+          },
           createdAt: 1,
           updatedAt: 1,
           resourceURI: 1,
