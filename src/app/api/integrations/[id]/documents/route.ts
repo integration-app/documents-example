@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/mongodb";
 import { DocumentModel } from "@/models/document";
+import { KnowledgeModel } from "@/models/knowledge";
 
 export const dynamic = "force-dynamic";
 
@@ -9,8 +10,6 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { searchParams } = new URL(request.url);
-    const searchQuery = searchParams.get("q") || "";
     const connectionId = (await params).id;
 
     if (!connectionId) {
@@ -19,20 +18,16 @@ export async function GET(
 
     await connectDB();
 
-    let query: {
-      connectionId: string;
-      title?: { $regex: string; $options: string };
-    } = { connectionId };
-    if (searchQuery) {
-      query = {
-        ...query,
-        title: { $regex: searchQuery, $options: "i" },
-      };
-    }
+    const documents = await DocumentModel.find({ connectionId }).lean();
 
-    const documents = await DocumentModel.find(query).lean();
+    const knowledge = await KnowledgeModel.findOne({
+      connectionId
+    })
 
-    return NextResponse.json({ documents });
+    return NextResponse.json({
+      documents,
+      isTruncated: knowledge?.isTruncated || false
+    });
   } catch (error) {
     console.error("Failed to fetch documents:", error);
     return NextResponse.json(

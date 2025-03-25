@@ -188,6 +188,7 @@ export function DocumentPicker({
 
   const {
     documents,
+    isTruncated,
     setDocuments,
     loading,
     error: fetchDocumentsError,
@@ -387,17 +388,24 @@ export function DocumentPicker({
               className="flex-1"
             />
           </div>
+          {isTruncated && (
+            <div className="text-xs text-gray-500 bg-blue-50 text-center py-1.5 rounded-md">
+              *Sync was truncated to 1000 documents
+            </div>
+          )}
         </DialogHeader>
 
         <div className="min-h-[400px] max-h-[400px] overflow-y-auto my-6">
           {renderContent()}
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
-          <Button onClick={handleDone}>Done</Button>
+        <DialogFooter className="flex-col gap-4">
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose}>
+              Close
+            </Button>
+            <Button onClick={handleDone}>Done</Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

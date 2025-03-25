@@ -7,7 +7,8 @@ export const KnowledgeStatus = {
   failed: "failed",
 } as const;
 
-export type KnowledgeStatus = (typeof KnowledgeStatus)[keyof typeof KnowledgeStatus];
+export type KnowledgeStatus =
+  (typeof KnowledgeStatus)[keyof typeof KnowledgeStatus];
 
 export interface Knowledge {
   userId: string;
@@ -20,6 +21,7 @@ export interface Knowledge {
   syncStartedAt?: Date;
   syncCompletedAt?: Date;
   syncError?: string;
+  isTruncated?: boolean;
 }
 
 const knowledgeSchema = new Schema<Knowledge>(
@@ -44,11 +46,15 @@ const knowledgeSchema = new Schema<Knowledge>(
     integrationLogo: String,
     syncStatus: {
       type: String,
-      enum: Object.values(KnowledgeStatus)
+      enum: Object.values(KnowledgeStatus),
     },
     syncStartedAt: Date,
     syncCompletedAt: Date,
     syncError: String,
+    isTruncated: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

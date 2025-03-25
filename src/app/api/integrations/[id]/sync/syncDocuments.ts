@@ -192,6 +192,7 @@ export const inngest_syncDocuments = inngest.createFunction(
             syncStatus: "completed",
             syncCompletedAt: new Date(),
             syncError: null,
+            isTruncated: totalDocumentsSynced >= MAX_DOCUMENTS,
           },
         },
         { new: true }
