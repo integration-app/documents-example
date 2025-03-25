@@ -13,7 +13,7 @@ export default function HomePage() {
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold tracking-tight">
-              Document Example
+              Content Example
             </h1>
             <p className="text-muted-foreground">
               This app uses{" "}

@@ -32,7 +32,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             "bg-red-500 text-white hover:bg-red-600": variant === "destructive",
             "bg-transparent hover:bg-gray-100 text-gray-600 hover:text-gray-900":
               variant === "ghost",
-            "h-10 px-4 py-2": size === "default",
+            "h-[2.25rem] px-4 py-2": size === "default",
             "h-8 px-3 text-sm": size === "sm",
           },
           className
