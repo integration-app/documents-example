@@ -108,7 +108,7 @@ export function KnowledgeItem({
             </PopoverTrigger>
             <PopoverContent className="w-[200px] p-2">
               <div className="text-sm text-destructive">
-                <p className="font-bold">Download failed</p>
+                <p className="font-bold">Last Download failed</p>
                 {document.downloadError}
               </div>
             </PopoverContent>
@@ -172,7 +172,7 @@ export function KnowledgeItem({
         )}
 
         <DocumentViewer
-          documentId={document.id}
+          documentId={document._id}
           title={document.title}
           open={isViewingDocument}
           onOpenChange={(open) => !open && setIsViewingDocument(false)}

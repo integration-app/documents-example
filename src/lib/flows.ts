@@ -15,14 +15,6 @@ export async function triggerDownloadDocumentFlow(
     throw new Error(`Document with id ${documentId} not found`);
   }
 
-  // If the document is already downloading or extracting text, don't trigger the flow again
-  if (
-    doc.downloadState === DownloadState.DOWNLOADING_FROM_URL ||
-    doc.downloadState === DownloadState.EXTRACTING_TEXT
-  ) {
-    return false;
-  }
-
   let runResult;
 
   try {
@@ -36,9 +28,11 @@ export async function triggerDownloadDocumentFlow(
       });
 
     await DocumentModel.updateOne(
-      { id: documentId },
+      { id: documentId, connectionId },
       { $set: { downloadState: DownloadState.FLOW_TRIGGERED } }
     );
+
+    console.log("Triggered flow for document:", runResult);
   } catch (error) {
     console.error(
       `Failed to trigger flow for document ${documentId}: ${error}`

@@ -125,7 +125,7 @@ export const inngest_downloadAndExtractTextFromFile = inngest.createFunction(
       });
 
       // Extract text content
-      const { text: extractedText } = await step.run(
+      const { text: extractedText, timedOut } = await step.run(
         "extract-text",
         async () => {
           const { Body } = await getS3ObjectStream(newStorageKey);
@@ -193,18 +193,20 @@ export const inngest_downloadAndExtractTextFromFile = inngest.createFunction(
         }
       );
 
-      // Update document with extracted text
-      await step.run("save-extracted-text", async () => {
-        await DocumentModel.updateOne(
-          { connectionId, id: documentId },
-          {
-            $set: {
-              content: extractedText,
-              downloadState: DownloadState.DONE,
-            },
-          }
-        );
-      });
+      if (!timedOut) {
+        // Update document with extracted text
+        await step.run("save-extracted-text", async () => {
+          await DocumentModel.updateOne(
+            { connectionId, id: documentId },
+            {
+              $set: {
+                content: extractedText,
+                downloadState: DownloadState.DONE,
+              },
+            }
+          );
+        });
+      }
     }
 
     return { success: true };
