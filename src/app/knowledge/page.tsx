@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { getAuthHeaders } from "@/app/auth-provider";
 import { IntegrationNav } from "@/app/knowledge/components/integration-nav";
 import { IntegrationCard } from "@/app/knowledge/components/integration-card";
 import { filterIntegrationGroups, type IntegrationGroup } from "./utils";
+import useLocalStorage from "@/hooks/use-local-storage";
 import useSWR from "swr";
 
 function LoadingSkeleton() {
@@ -61,7 +62,8 @@ const fetcher = async (url: string) => {
 };
 
 export default function KnowledgePage() {
-  const [selectedIntegration, setSelectedIntegration] = useState<string | null>(
+  const [selectedIntegration, setSelectedIntegration] = useLocalStorage<string | null>(
+    'selectedIntegration',
     null
   );
 

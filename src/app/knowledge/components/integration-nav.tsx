@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 interface Integration {
@@ -31,6 +31,25 @@ export function IntegrationNav({
       left: buttonRect.left - containerRect.left,
     });
   };
+
+  useEffect(() => {
+    // Set initial slider position based on selected integration
+    if (containerRef.current) {
+      const buttons = containerRef.current.getElementsByTagName('button');
+      if (selectedIntegration === null) {
+        // Set position for "All" button
+        updateSliderPosition(buttons[0]);
+      } else {
+        // Find and set position for selected integration button
+        const selectedButton = Array.from(buttons).find(
+          button => button.textContent === integrations.find(i => i.integrationId === selectedIntegration)?.integrationName
+        );
+        if (selectedButton) {
+          updateSliderPosition(selectedButton);
+        }
+      }
+    }
+  }, [selectedIntegration, integrations]);
 
   return (
     <div className="relative mb-8">
