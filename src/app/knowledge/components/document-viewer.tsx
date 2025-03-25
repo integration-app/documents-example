@@ -30,6 +30,8 @@ export function DocumentViewer({
 
   useEffect(() => {
     const fetchContent = async () => {
+      if (!open) return;
+
       try {
         const response = await fetch(`/api/documents/${documentId}/content`, {
           headers: getAuthHeaders(),
@@ -50,7 +52,7 @@ export function DocumentViewer({
     };
 
     fetchContent();
-  }, [documentId]);
+  }, [open, documentId]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
