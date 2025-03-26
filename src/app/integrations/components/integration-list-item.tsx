@@ -16,6 +16,7 @@ import useSWR from "swr";
 import { KnowledgeStatus } from "@/models/knowledge";
 import { SyncStatusRouteSuccessResponse } from "@/app/api/integrations/[id]/sync-status/types";
 import { SyncStatusRouteErrorResponse } from "@/app/api/integrations/[id]/sync-status/types";
+import { cn } from "@/lib/utils";
 
 interface IntegrationListItemProps {
   integration: Integration;
@@ -144,6 +145,10 @@ export function IntegrationListItem({
     }
   };
 
+  const isDisconnected = integration.connection?.disconnected
+
+  console.log(integration);
+
   return (
     <>
       {isPickerOpen && (
@@ -162,7 +167,11 @@ export function IntegrationListItem({
         />
       )}
 
-      <div className="flex items-center justify-between p-4 pl-0 bg-white rounded-lg border-b">
+      <div
+        className={cn(
+          "flex items-center justify-between p-4 pl-0 bg-white rounded-lg border-b",
+        )}
+      >
         <div className="flex items-center gap-4">
           {integration.logoUri ? (
             <Image
@@ -178,10 +187,12 @@ export function IntegrationListItem({
             </div>
           )}
 
-          <div className="flex  gap-2">
+          <div className="flex gap-2 items-center">
             <h3 className="font-medium">{integration.name}</h3>
-            {integration.connection?.disconnected && (
-              <p className="text-sm text-red-500">Disconnected</p>
+            {isDisconnected && (
+              <p className="text-sm font-bold text-red-500 ">
+                Disconnected
+              </p>
             )}
 
             {isSyncing && (
