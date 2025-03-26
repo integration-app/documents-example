@@ -96,7 +96,7 @@ export function IntegrationListItem({
     }
   };
 
-  const handleConnect = async () => {
+  const handleConnect = async ({ syncAfterConnect = true }: { syncAfterConnect: boolean }) => {
     try {
       setIsConnecting(true);
 
@@ -105,11 +105,17 @@ export function IntegrationListItem({
         .openNewConnection();
 
       if (!connection?.id) {
-        throw new Error("No connection ID received");
+        throw new Error("Connection was not successful");
       }
 
       setIsConnecting(false);
-      await handleStartSync({ connectionId: connection.id });
+
+      if (
+        syncAfterConnect
+      ) {
+        handleStartSync({ connectionId: connection.id });
+      }
+
     } catch (error) {
       setIsConnecting(false);
 
@@ -145,9 +151,8 @@ export function IntegrationListItem({
     }
   };
 
-  const isDisconnected = integration.connection?.disconnected
+  const isDisconnected = integration.connection?.disconnected;
 
-  console.log(integration);
 
   return (
     <>
@@ -215,35 +220,36 @@ export function IntegrationListItem({
                 <Settings className="w-4 h-4 mr-2" />
                 Configure
               </Button>
-              <Button
-                variant="ghost"
-                onClick={handleDisconnect}
-                size="sm"
-                disabled={isDisconnecting}
-                className="w-[100px]"
-              >
-                {isDisconnecting ? (
-                  <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
+              {isDisconnected ? (
+                <Button
+                  variant="ghost"
+                  onClick={() => handleConnect({ syncAfterConnect: false })}
+                  size="sm"
+                  disabled={isConnecting}
+                >
+                  <span className="font-bold">Reconnect</span>
+                  {isConnecting && <Icons.spinner className="ml-2 h-4 w-4 animate-spin" />}
+                </Button>
+              ) : (
+                <Button
+                  variant="ghost"
+                  onClick={handleDisconnect}
+                  size="sm"
+                  disabled={isDisconnecting}
+                >
                   <span className="text-red-500">Disconnect</span>
-                )}
-              </Button>
+                  {isDisconnecting && <Icons.spinner className="ml-2 h-4 w-4 animate-spin" />}
+                </Button>
+              )}
             </>
           ) : (
             <Button
-              onClick={handleConnect}
+              onClick={() => handleConnect({ syncAfterConnect: true })}
               variant="default"
               size="sm"
-              disabled={isConnecting || isSyncing}
+              disabled={isConnecting}
             >
-              {isConnecting ? (
-                <>
-                  <Icons.spinner className="mr-2 h-4 w-4 animate-spin" />
-                  Connecting
-                </>
-              ) : (
-                "Connect"
-              )}
+              Connect {isConnecting && <Icons.spinner className="ml-2 h-4 w-4 animate-spin" />}
             </Button>
           )}
         </div>
