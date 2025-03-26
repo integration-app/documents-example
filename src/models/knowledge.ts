@@ -61,6 +61,8 @@ const knowledgeSchema = new Schema<Knowledge>(
   }
 );
 
+knowledgeSchema.index({ userId: 1, integrationId: 1 }, { unique: true });
+
 // Recreate model if it exists
 if (models?.Knowledge) {
   delete models.Knowledge;
