@@ -34,6 +34,7 @@ export async function POST(
           syncStatus: KnowledgeStatus.in_progress,
           syncStartedAt: new Date(),
           syncError: null,
+          isTruncated: false,
         },
       },
       { upsert: true }
