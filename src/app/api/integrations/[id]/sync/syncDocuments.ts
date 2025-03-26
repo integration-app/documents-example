@@ -104,7 +104,7 @@ export const inngest_syncDocuments = inngest.createFunction(
         try {
           const fetchPromise = integrationApp
             .connection(connectionId)
-            .action("list-documents")
+            .action("list-content-items")
             .run({ cursor }) as Promise<DocumentsResponse>;
 
           return await withTimeout(

@@ -20,7 +20,7 @@ export async function triggerDownloadDocumentFlow(
   try {
     runResult = await integrationApp
       .connection(connectionId)
-      .flow("download-document")
+      .flow("download-content-item")
       .run({
         input: {
           documentId,
