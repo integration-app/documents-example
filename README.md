@@ -1,8 +1,8 @@
-# Import Documents
+# Content Import Example
 
-This is an application showcasing how you can implement Importing Documents file storages or knowledge bases using [Integration.app](https://integration.app). The app is built with Next.js/React.
+This is an application showcasing how you can implement Importing Content and Files into a knowledge base using [Integration.app](https://integration.app). The app is built with Next.js/React.
 
-[Demo](https://documents-example.vercel.app/)
+[Demo](https://content-import-example.vercel.app/)
 
 ## Prerequisites
 
