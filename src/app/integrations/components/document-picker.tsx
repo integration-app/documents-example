@@ -362,7 +362,9 @@ export function DocumentPicker({
             {isSyncing && (
               <div className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
                 <Icons.spinner className="h-3 w-3 animate-spin" />
-                <span>{documents.length} Documents Synced</span>
+                <span>
+                  {documents.length ? `${documents.length} Documents Synced` : "Syncing..."}
+                </span>
               </div>
             )}
 

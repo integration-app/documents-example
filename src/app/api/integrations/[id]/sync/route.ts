@@ -6,6 +6,7 @@ import connectDB from "@/lib/mongodb";
 import { KnowledgeModel, KnowledgeStatus } from "@/models/knowledge";
 import { SyncEventData, SyncRequestBody, SyncRouteResponse } from "./types";
 import { SYNC_EVENT_NAME } from "./syncDocuments";
+import { DocumentModel } from "@/models/document";
 
 export async function POST(
   request: NextRequest,
@@ -45,6 +46,9 @@ export async function POST(
       token,
       userId: auth.customerId,
     } satisfies SyncEventData;
+
+    // Clear existing documents
+    await DocumentModel.deleteMany({ connectionId });
 
     await inngest.send<{ name: string; data: SyncEventData }>({
       name: SYNC_EVENT_NAME,

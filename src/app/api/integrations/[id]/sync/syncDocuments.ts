@@ -89,11 +89,6 @@ export const inngest_syncDocuments = inngest.createFunction(
 
     await connectDB();
 
-    // Clear existing documents
-    await step.run("clear-existing-documents", async () => {
-      await DocumentModel.deleteMany({ connectionId });
-    });
-
     const integrationApp = new IntegrationAppClient({ token });
     let cursor: string | undefined;
 
