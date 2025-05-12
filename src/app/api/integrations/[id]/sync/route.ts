@@ -25,7 +25,7 @@ export async function POST(
     const userId = auth.customerId;
 
     await KnowledgeModel.findOneAndUpdate(
-      { connectionId },
+      { connectionId, userId },
       {
         $set: {
           userId,
